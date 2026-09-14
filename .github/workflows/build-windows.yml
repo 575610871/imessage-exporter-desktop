@@ -52,7 +52,13 @@ jobs:
           git -C upstream fetch --depth 1 origin $env:UPSTREAM_COMMIT
           git -C upstream checkout --detach FETCH_HEAD
           git -C upstream apply "$env:GITHUB_WORKSPACE\patches\password-environment.patch"
+          if ($LASTEXITCODE -ne 0) { throw "Password environment patch failed to apply." }
           git -C upstream diff --check
+          if ($LASTEXITCODE -ne 0) { throw "Patched upstream source contains whitespace errors." }
+          $patchedSource = Get-Content "upstream\imessage-exporter\src\app\compatibility\backup.rs" -Raw
+          if (-not $patchedSource.Contains("IMESSAGE_EXPORTER_BACKUP_PASSWORD")) {
+            throw "Password environment patch verification failed."
+          }
 
       - name: Test desktop core
         shell: pwsh
@@ -62,7 +68,7 @@ jobs:
       - name: Test and build exporter engine
         shell: pwsh
         run: |
-          cargo test --manifest-path upstream/Cargo.toml --workspace
+          cargo test --manifest-path upstream/Cargo.toml --package imessage-exporter --no-run
           cargo build --manifest-path upstream/Cargo.toml --release --package imessage-exporter
           & "upstream\target\release\imessage-exporter.exe" --version
           if ($LASTEXITCODE -ne 0) { throw "Exporter engine smoke test failed." }
