@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-build
@@ -181,3 +181,32 @@ jobs:
             artifacts/dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish repository release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v$env:APP_VERSION"
+          $dist = Join-Path $env:GITHUB_WORKSPACE "artifacts\dist"
+          $assets = Get-ChildItem $dist -File | Sort-Object Name | ForEach-Object { $_.FullName }
+          $notes = @"
+          Windows x64 安装版与免安装便携版，提供中文可视化界面。
+
+          - 桌面封装版本：$env:APP_VERSION
+          - 上游项目：$env:UPSTREAM_REPOSITORY
+          - 上游固定提交：$env:UPSTREAM_COMMIT
+          - 构建提交：$env:GITHUB_SHA
+
+          下载 Setup-x64.exe 进行安装；SHA256SUMS.txt 用于校验。
+          "@
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @assets --clobber --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -ne 0) { throw "Release asset upload failed." }
+            gh release edit $tag --title "iMessage Exporter Desktop $env:APP_VERSION" --notes $notes --repo $env:GITHUB_REPOSITORY
+          }
+          else {
+            gh release create $tag @assets --title "iMessage Exporter Desktop $env:APP_VERSION" --notes $notes --repo $env:GITHUB_REPOSITORY
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Release publication failed." }
