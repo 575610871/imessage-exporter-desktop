@@ -60,18 +60,21 @@ jobs:
             throw "Password environment patch verification failed."
           }
 
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            upstream/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('upstream/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
+
       - name: Test desktop core
         shell: pwsh
         run: |
           dotnet run --project tests/Core.SelfTests/Core.SelfTests.csproj --configuration Release
-
-      - name: Test and build exporter engine
-        shell: pwsh
-        run: |
-          cargo test --manifest-path upstream/Cargo.toml --package imessage-exporter --no-run
-          cargo build --manifest-path upstream/Cargo.toml --release --package imessage-exporter
-          & "upstream\target\release\imessage-exporter.exe" --version
-          if ($LASTEXITCODE -ne 0) { throw "Exporter engine smoke test failed." }
 
       - name: Generate application icon
         shell: pwsh
@@ -82,6 +85,14 @@ jobs:
         shell: pwsh
         run: |
           dotnet publish "src\ImessageExporterDesktop\ImessageExporterDesktop.csproj" --configuration Release --runtime win-x64 --self-contained true --output "artifacts\gui" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false
+
+      - name: Test and build exporter engine
+        shell: pwsh
+        run: |
+          cargo test --manifest-path upstream/Cargo.toml --package imessage-exporter --no-run
+          cargo build --manifest-path upstream/Cargo.toml --release --package imessage-exporter
+          & "upstream\target\release\imessage-exporter.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "Exporter engine smoke test failed." }
 
       - name: Assemble portable package
         shell: pwsh
