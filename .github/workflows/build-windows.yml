@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  APP_VERSION: 0.1.0
+  APP_VERSION: 0.1.1
   UPSTREAM_REPOSITORY: https://github.com/ReagentX/imessage-exporter.git
   UPSTREAM_COMMIT: 4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -158,7 +158,7 @@ jobs:
           git -C upstream archive --format=zip --output "$env:GITHUB_WORKSPACE\artifacts\upstream-source.zip" HEAD
           Expand-Archive "artifacts\upstream-source.zip" $upstreamSource -Force
           Copy-Item "patches\password-environment.patch" (Join-Path $upstreamSource "DESKTOP-PASSWORD-ENVIRONMENT.patch") -Force
-          Compress-Archive -Path (Join-Path $sourceRoot "*") -DestinationPath (Join-Path $dist "iMessage-Exporter-Desktop-Source-0.1.0.zip") -CompressionLevel Optimal -Force
+          Compress-Archive -Path (Join-Path $sourceRoot "*") -DestinationPath (Join-Path $dist "iMessage-Exporter-Desktop-Source-$env:APP_VERSION.zip") -CompressionLevel Optimal -Force
 
       - name: Write checksums
         shell: pwsh
@@ -174,7 +174,7 @@ jobs:
       - name: Upload Windows deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: iMessage-Exporter-Desktop-0.1.0-Windows-x64
+          name: iMessage-Exporter-Desktop-0.1.1-Windows-x64
           path: |
             artifacts/dist/*.exe
             artifacts/dist/*.zip
@@ -192,6 +192,7 @@ jobs:
           $assets = Get-ChildItem $dist -File | Sort-Object Name | ForEach-Object { $_.FullName }
           $notes = @"
           Windows x64 安装版与免安装便携版，提供中文可视化界面。
+          v0.1.1 新增 PerMonitorV2、高缩放窗口适配与窄屏单栏布局。
 
           - 桌面封装版本：$env:APP_VERSION
           - 上游项目：$env:UPSTREAM_REPOSITORY

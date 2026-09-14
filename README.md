@@ -18,6 +18,7 @@
 - 完成后直接打开导出文件夹
 - 提供诊断模式
 - 安装时可选择路径、创建桌面快捷方式并在完成后启动
+- 支持 Windows 高 DPI 与多显示器缩放；窄窗口自动切换为单栏布局
 
 ## 使用
 
@@ -51,6 +52,10 @@ dotnet build src/ImessageExporterDesktop/ImessageExporterDesktop.csproj
 ```
 
 完整安装包使用仓库中的 GitHub Actions 工作流构建。
+
+## 显示缩放
+
+应用声明为 Per-Monitor V2 DPI 感知。窗口会根据当前显示器的可用区域调整初始尺寸；拖动到不同缩放比例的显示器后会重新检查可用尺寸。窗口较窄时，导出选项会从双栏自动改为单栏，并保留纵向滚动。
 
 ## 许可证
 

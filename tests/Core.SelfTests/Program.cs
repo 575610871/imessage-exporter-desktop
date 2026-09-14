@@ -52,6 +52,27 @@ try
     {
         "--diagnostics", "--db-path", backup, "--platform", "iOS"
     }), "Diagnostics argument mapping changed unexpectedly.");
+
+    var roomyLayout = AdaptiveWindowSizer.Calculate(1920, 1040);
+    Check(roomyLayout.Width == 980 && roomyLayout.Height == 860,
+        "A normal desktop should use the preferred window size.");
+    Check(roomyLayout.MinimumWidth == 640 && roomyLayout.MinimumHeight == 520,
+        "A normal desktop should keep the standard minimum size.");
+    Check(!AdaptiveWindowSizer.ShouldUseCompact(roomyLayout.Width),
+        "The preferred window size should retain the two-column layout.");
+
+    var highScaleLayout = AdaptiveWindowSizer.Calculate(683, 344);
+    Check(highScaleLayout.Width == 651 && highScaleLayout.Height == 312,
+        "A high-DPI small work area must be fitted with a safety margin.");
+    Check(highScaleLayout.MinimumWidth <= highScaleLayout.Width &&
+          highScaleLayout.MinimumHeight <= highScaleLayout.Height,
+        "Minimum dimensions must never exceed the fitted window.");
+    Check(AdaptiveWindowSizer.ShouldUseCompact(highScaleLayout.Width),
+        "A narrow high-DPI window should switch to one column.");
+
+    var tinyLayout = AdaptiveWindowSizer.Calculate(500, 280);
+    Check(tinyLayout.Width == 468 && tinyLayout.Height == 248,
+        "Very small work areas must remain usable rather than enforcing fixed minima.");
 }
 finally
 {

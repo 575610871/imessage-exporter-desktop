@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- Declare Per-Monitor V2 DPI awareness with compatibility fallback.
+- Fit the initial window to the active monitor's available work area.
+- Recalculate usable dimensions when moving between monitors with different DPI.
+- Switch export options from two columns to one column on narrow windows.
+- Add layout sizing tests for normal, high-scale and very small work areas.
+
 ## 0.1.0
 
 - Add a Chinese-first Windows desktop interface.

@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Media;
 using IMessageExporterDesktop.Core;
 using IMessageExporterDesktop.Services;
@@ -14,6 +16,9 @@ namespace IMessageExporterDesktop;
 public partial class MainWindow : Window
 {
     private const int MaximumLogLength = 500_000;
+    private const uint MonitorDefaultToNearest = 2;
+
+    private bool? _compactLayout;
 
     private readonly ObservableCollection<BackupInfo> _detectedBackups = new();
     private readonly ExporterRunner _runner = new();
@@ -46,6 +51,9 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        FitWindowToCurrentWorkArea(preferDefaultSize: true);
+        ApplyResponsiveLayout();
+
         LoadPreferences();
         UpdateDateControls();
         UpdateFormatControls();
@@ -55,6 +63,17 @@ public partial class MainWindow : Window
         {
             await DetectBackupsAsync(showEmptyMessage: false);
         }
+    }
+
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ApplyResponsiveLayout();
+    }
+
+    private void Window_DpiChanged(object sender, DpiChangedEventArgs e)
+    {
+        FitWindowToCurrentWorkArea(preferDefaultSize: false);
+        ApplyResponsiveLayout();
     }
 
     private void Window_Closing(object? sender, CancelEventArgs e)
@@ -488,6 +507,135 @@ public partial class MainWindow : Window
         }
     }
 
+    private void FitWindowToCurrentWorkArea(bool preferDefaultSize)
+    {
+        var windowHandle = new WindowInteropHelper(this).Handle;
+        if (windowHandle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var monitorHandle = MonitorFromWindow(windowHandle, MonitorDefaultToNearest);
+        var monitorInfo = new MonitorInfo
+        {
+            Size = (uint)Marshal.SizeOf<MonitorInfo>()
+        };
+
+        if (monitorHandle == IntPtr.Zero || !GetMonitorInfo(monitorHandle, ref monitorInfo))
+        {
+            return;
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var workAreaWidth = (monitorInfo.Work.Right - monitorInfo.Work.Left) / dpi.DpiScaleX;
+        var workAreaHeight = (monitorInfo.Work.Bottom - monitorInfo.Work.Top) / dpi.DpiScaleY;
+        var layout = AdaptiveWindowSizer.Calculate(workAreaWidth, workAreaHeight);
+
+        MinWidth = layout.MinimumWidth;
+        MinHeight = layout.MinimumHeight;
+
+        if (WindowState != WindowState.Normal)
+        {
+            return;
+        }
+
+        var currentWidth = double.IsNaN(Width) || Width <= 0 ? ActualWidth : Width;
+        var currentHeight = double.IsNaN(Height) || Height <= 0 ? ActualHeight : Height;
+
+        Width = preferDefaultSize
+            ? layout.Width
+            : Math.Max(layout.MinimumWidth, Math.Min(currentWidth, layout.Width));
+        Height = preferDefaultSize
+            ? layout.Height
+            : Math.Max(layout.MinimumHeight, Math.Min(currentHeight, layout.Height));
+    }
+
+    private void ApplyResponsiveLayout()
+    {
+        if (ExportOptionsGrid is null || ActualWidth <= 0)
+        {
+            return;
+        }
+
+        var useCompactLayout = AdaptiveWindowSizer.ShouldUseCompact(ActualWidth);
+        if (_compactLayout == useCompactLayout)
+        {
+            return;
+        }
+
+        _compactLayout = useCompactLayout;
+        ExportOptionsGrid.ColumnDefinitions.Clear();
+        ExportOptionsGrid.RowDefinitions.Clear();
+
+        if (useCompactLayout)
+        {
+            ExportOptionsGrid.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            for (var index = 0; index < 7; index++)
+            {
+                ExportOptionsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            }
+
+            PlacePanel(FormatPanel, 0);
+            PlacePanel(AttachmentPanel, 1);
+            PlacePanel(StartDatePanel, 2);
+            PlacePanel(EndDatePanel, 3);
+            PlacePanel(ConversationPanel, 4);
+            PlacePanel(CustomNamePanel, 5);
+            PlacePanel(PasswordPanel, 6);
+
+            PrivacyBadge.Visibility = Visibility.Collapsed;
+            HeaderGrid.Margin = new Thickness(18, 16);
+            MainContentPanel.Margin = new Thickness(16, 16, 16, 8);
+            FooterGrid.Margin = new Thickness(16, 8);
+            BackupDiscoveryPanel.Orientation = Orientation.Vertical;
+            DetectBackupsButton.Margin = new Thickness(0, 0, 0, 6);
+            BackupLocationHint.Margin = Thickness.Empty;
+        }
+        else
+        {
+            ExportOptionsGrid.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            ExportOptionsGrid.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(24) });
+            ExportOptionsGrid.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            for (var index = 0; index < 4; index++)
+            {
+                ExportOptionsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            }
+
+            PlacePanel(FormatPanel, 0, 0);
+            PlacePanel(AttachmentPanel, 0, 2);
+            PlacePanel(StartDatePanel, 1, 0);
+            PlacePanel(EndDatePanel, 1, 2);
+            PlacePanel(ConversationPanel, 2, 0);
+            PlacePanel(CustomNamePanel, 2, 2);
+            PlacePanel(PasswordPanel, 3, 0, 3);
+
+            PrivacyBadge.Visibility = Visibility.Visible;
+            HeaderGrid.Margin = new Thickness(28, 22);
+            MainContentPanel.Margin = new Thickness(28, 24, 28, 10);
+            FooterGrid.Margin = new Thickness(28, 10);
+            BackupDiscoveryPanel.Orientation = Orientation.Horizontal;
+            DetectBackupsButton.Margin = new Thickness(0, 0, 10, 0);
+            BackupLocationHint.Margin = Thickness.Empty;
+        }
+    }
+
+    private static void PlacePanel(
+        FrameworkElement panel,
+        int row,
+        int column = 0,
+        int columnSpan = 1)
+    {
+        Grid.SetRow(panel, row);
+        Grid.SetColumn(panel, column);
+        Grid.SetColumnSpan(panel, columnSpan);
+    }
+
     private void SetBusy(bool busy)
     {
         _isBusy = busy;
@@ -590,6 +738,31 @@ public partial class MainWindow : Window
     private static SolidColorBrush BrushFrom(string hex)
     {
         return (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr windowHandle, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr monitorHandle, ref MonitorInfo monitorInfo);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public uint Size;
+        public NativeRect Monitor;
+        public NativeRect Work;
+        public uint Flags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 
     private sealed record Choice<T>(string Label, T Value);
