@@ -586,12 +586,12 @@ public partial class MainWindow : Window
             PlacePanel(PasswordPanel, 6);
 
             PrivacyBadge.Visibility = Visibility.Collapsed;
-            HeaderGrid.Margin = new Thickness(18, 16);
+            HeaderGrid.Margin = new Thickness(18, 16, 18, 16);
             MainContentPanel.Margin = new Thickness(16, 16, 16, 8);
-            FooterGrid.Margin = new Thickness(16, 8);
+            FooterGrid.Margin = new Thickness(16, 8, 16, 8);
             BackupDiscoveryPanel.Orientation = Orientation.Vertical;
             DetectBackupsButton.Margin = new Thickness(0, 0, 0, 6);
-            BackupLocationHint.Margin = Thickness.Empty;
+            BackupLocationHint.Margin = new Thickness(0);
         }
         else
         {
@@ -616,12 +616,12 @@ public partial class MainWindow : Window
             PlacePanel(PasswordPanel, 3, 0, 3);
 
             PrivacyBadge.Visibility = Visibility.Visible;
-            HeaderGrid.Margin = new Thickness(28, 22);
+            HeaderGrid.Margin = new Thickness(28, 22, 28, 22);
             MainContentPanel.Margin = new Thickness(28, 24, 28, 10);
-            FooterGrid.Margin = new Thickness(28, 10);
+            FooterGrid.Margin = new Thickness(28, 10, 28, 10);
             BackupDiscoveryPanel.Orientation = Orientation.Horizontal;
             DetectBackupsButton.Margin = new Thickness(0, 0, 10, 0);
-            BackupLocationHint.Margin = Thickness.Empty;
+            BackupLocationHint.Margin = new Thickness(0);
         }
     }
 
