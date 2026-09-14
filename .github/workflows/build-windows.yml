@@ -1,0 +1,166 @@
+name: Build Windows
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build
+  cancel-in-progress: true
+
+env:
+  APP_VERSION: 0.1.0
+  UPSTREAM_REPOSITORY: https://github.com/ReagentX/imessage-exporter.git
+  UPSTREAM_COMMIT: 4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
+jobs:
+  build:
+    name: Build installer and portable package
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out desktop source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set up Rust
+        shell: pwsh
+        run: |
+          rustup set auto-self-update disable
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+          cargo --version
+
+      - name: Fetch pinned exporter source
+        shell: pwsh
+        run: |
+          git init upstream
+          git -C upstream remote add origin $env:UPSTREAM_REPOSITORY
+          git -C upstream fetch --depth 1 origin $env:UPSTREAM_COMMIT
+          git -C upstream checkout --detach FETCH_HEAD
+          git -C upstream apply "$env:GITHUB_WORKSPACE\patches\password-environment.patch"
+          git -C upstream diff --check
+
+      - name: Test desktop core
+        shell: pwsh
+        run: |
+          dotnet run --project tests/Core.SelfTests/Core.SelfTests.csproj --configuration Release
+
+      - name: Test and build exporter engine
+        shell: pwsh
+        run: |
+          cargo test --manifest-path upstream/Cargo.toml --workspace
+          cargo build --manifest-path upstream/Cargo.toml --release --package imessage-exporter
+          & "upstream\target\release\imessage-exporter.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "Exporter engine smoke test failed." }
+
+      - name: Generate application icon
+        shell: pwsh
+        run: |
+          & "scripts\New-Icon.ps1" -OutputPath "src\ImessageExporterDesktop\Assets\App.ico"
+
+      - name: Publish self-contained GUI
+        shell: pwsh
+        run: |
+          dotnet publish "src\ImessageExporterDesktop\ImessageExporterDesktop.csproj" --configuration Release --runtime win-x64 --self-contained true --output "artifacts\gui" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false
+
+      - name: Assemble portable package
+        shell: pwsh
+        run: |
+          $portable = Join-Path $env:GITHUB_WORKSPACE "artifacts\portable"
+          $dist = Join-Path $env:GITHUB_WORKSPACE "artifacts\dist"
+          New-Item -ItemType Directory -Force $portable | Out-Null
+          New-Item -ItemType Directory -Force (Join-Path $portable "engine") | Out-Null
+          New-Item -ItemType Directory -Force $dist | Out-Null
+          Copy-Item "artifacts\gui\*" $portable -Recurse -Force
+          Copy-Item "upstream\target\release\imessage-exporter.exe" (Join-Path $portable "engine\imessage-exporter.exe") -Force
+          Copy-Item "LICENSE" (Join-Path $portable "LICENSE.txt") -Force
+          Copy-Item "THIRD_PARTY_NOTICES.md" $portable -Force
+          Copy-Item "README.md" $portable -Force
+          Copy-Item "src\ImessageExporterDesktop\Assets\App.ico" $portable -Force
+          $buildInfo = @"
+          iMessage Exporter Desktop $env:APP_VERSION
+          Desktop commit: $env:GITHUB_SHA
+          Upstream repository: $env:UPSTREAM_REPOSITORY
+          Upstream commit: $env:UPSTREAM_COMMIT
+          Architecture: Windows x64
+          "@
+          $buildInfo | Set-Content (Join-Path $portable "BUILD-INFO.txt") -Encoding utf8
+          Compress-Archive -Path (Join-Path $portable "*") -DestinationPath (Join-Path $dist "iMessage-Exporter-Desktop-Portable-x64.zip") -CompressionLevel Optimal -Force
+
+      - name: Smoke-test portable package
+        shell: pwsh
+        run: |
+          $portable = Join-Path $env:GITHUB_WORKSPACE "artifacts\portable"
+          & (Join-Path $portable "engine\imessage-exporter.exe") --version
+          if ($LASTEXITCODE -ne 0) { throw "Packaged exporter engine failed." }
+          $process = Start-Process -FilePath (Join-Path $portable "iMessage Exporter Desktop.exe") -ArgumentList "--self-test" -PassThru -Wait
+          if ($process.ExitCode -ne 0) { throw "Packaged GUI self-test failed with exit code $($process.ExitCode)." }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $programFilesX86 = [Environment]::GetFolderPath([Environment+SpecialFolder]::ProgramFilesX86)
+          $iscc = Join-Path $programFilesX86 "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress --yes }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found." }
+          "ISCC_PATH=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $portable = Join-Path $env:GITHUB_WORKSPACE "artifacts\portable"
+          $dist = Join-Path $env:GITHUB_WORKSPACE "artifacts\dist"
+          & $env:ISCC_PATH "/DSourceDir=$portable" "/DOutputDir=$dist" "/DAppVersion=$env:APP_VERSION" "installer\ImessageExporterDesktop.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+
+      - name: Assemble corresponding source
+        shell: pwsh
+        run: |
+          $sourceRoot = Join-Path $env:GITHUB_WORKSPACE "artifacts\source"
+          $desktopSource = Join-Path $sourceRoot "desktop-wrapper"
+          $upstreamSource = Join-Path $sourceRoot "upstream-imessage-exporter"
+          $dist = Join-Path $env:GITHUB_WORKSPACE "artifacts\dist"
+          New-Item -ItemType Directory -Force $desktopSource | Out-Null
+          New-Item -ItemType Directory -Force $upstreamSource | Out-Null
+          git archive --format=zip --output "artifacts\desktop-source.zip" HEAD
+          Expand-Archive "artifacts\desktop-source.zip" $desktopSource -Force
+          git -C upstream archive --format=zip --output "$env:GITHUB_WORKSPACE\artifacts\upstream-source.zip" HEAD
+          Expand-Archive "artifacts\upstream-source.zip" $upstreamSource -Force
+          Copy-Item "patches\password-environment.patch" (Join-Path $upstreamSource "DESKTOP-PASSWORD-ENVIRONMENT.patch") -Force
+          Compress-Archive -Path (Join-Path $sourceRoot "*") -DestinationPath (Join-Path $dist "iMessage-Exporter-Desktop-Source-0.1.0.zip") -CompressionLevel Optimal -Force
+
+      - name: Write checksums
+        shell: pwsh
+        run: |
+          $dist = Join-Path $env:GITHUB_WORKSPACE "artifacts\dist"
+          $lines = Get-ChildItem $dist -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $lines | Set-Content (Join-Path $dist "SHA256SUMS.txt") -Encoding ascii
+          Get-Content (Join-Path $dist "SHA256SUMS.txt")
+
+      - name: Upload Windows deliverables
+        uses: actions/upload-artifact@v4
+        with:
+          name: iMessage-Exporter-Desktop-0.1.0-Windows-x64
+          path: |
+            artifacts/dist/*.exe
+            artifacts/dist/*.zip
+            artifacts/dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
