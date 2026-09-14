@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Core.SelfTests</AssemblyName>
+    <RootNamespace>IMessageExporterDesktop.Core.SelfTests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImessageExporterDesktop.Core\ImessageExporterDesktop.Core.csproj" />
+  </ItemGroup>
+</Project>
