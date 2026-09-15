@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — Suoh independent rewrite
+
+- New standalone projects under `portable/`; no references to the 0.1.x wrapper.
+- Build the Rust engine directly from pinned ReagentX source with a small GUI password bridge.
+- New Suoh (#992C49) WPF interface, responsive settings, pinned job controls and log view.
+- Place the native window inside the cursor monitor's work area, then center; re-check after WPF processes DPI/display changes.
+- Self-contained .NET 10 Windows x64 portable ZIP only, with matching source.
+- New model tests and real Windows native-window/WPF rendering checks, including honest limits on simulated DPI coverage.
+
 ## 0.1.1
 
 - Declare Per-Monitor V2 DPI awareness with compatibility fallback.

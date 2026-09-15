@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text.Json;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -25,6 +27,7 @@ internal static class UiVerification
             "Startup is not centered after rendering.");
         observations.Add(new { check = "native-startup", dpi = placement.Dpi, actual, work = placement.Available });
         Capture(view, Path.Combine(output, "01-startup.png"));
+        CaptureNativeWindow(view, Path.Combine(output, "00-native-window.png"));
 
         // Real WPF layout at constrained logical sizes. This is NOT a claim of changing Windows system DPI.
         foreach (var size in new[] { (1120d, 820d), (850d, 680d), (640d, 480d), (651d, 352d) })
@@ -42,6 +45,14 @@ internal static class UiVerification
             observations.Add(new { check = "real-WPF-layout", width = view.ActualWidth, height = view.ActualHeight, viewport = view.SettingsPage.ViewportHeight });
             Capture(view, Path.Combine(output, $"layout-{(int)size.Item1}x{(int)size.Item2}.png"));
         }
+
+        view.Advanced.IsExpanded = true;
+        view.SettingsPage.ScrollToEnd();
+        await Settle(view);
+        Require(IsInside(view.RememberOption, view.Surface), "Lower settings cannot be reached by scrolling.");
+        Capture(view, Path.Combine(output, "advanced-narrow.png"));
+        view.Advanced.IsExpanded = false;
+        view.SettingsPage.ScrollToTop();
 
         var work = placement.Available;
         placement.MoveTo(new ScreenBox(work.X - 200, work.Y - 400, 800, 600));
@@ -72,6 +83,44 @@ internal static class UiVerification
             rect.Right <= canvas.ActualWidth + 1 && rect.Bottom <= canvas.ActualHeight + 1;
     }
     private static void Require(bool value, string reason) { if (!value) throw new InvalidOperationException(reason); }
+    private static void CaptureNativeWindow(MainWindow view, string file)
+    {
+        var hwnd = new WindowInteropHelper(view).Handle;
+        var bounds = view.Placement.Current;
+        var source = CaptureApi.GetWindowDC(hwnd);
+        var memory = CaptureApi.CreateCompatibleDC(source);
+        var bitmap = CaptureApi.CreateCompatibleBitmap(source, bounds.Width, bounds.Height);
+        var previous = CaptureApi.SelectObject(memory, bitmap);
+        try
+        {
+            if (!CaptureApi.PrintWindow(hwnd, memory, 2)) return; // Some headless sessions do not support native capture.
+            var image = Imaging.CreateBitmapSourceFromHBitmap(bitmap, 0, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(image));
+            using var stream = File.Create(file);
+            encoder.Save(stream);
+        }
+        finally
+        {
+            CaptureApi.SelectObject(memory, previous);
+            CaptureApi.DeleteObject(bitmap);
+            CaptureApi.DeleteDC(memory);
+            CaptureApi.ReleaseDC(hwnd, source);
+        }
+    }
+
+    private static class CaptureApi
+    {
+        [DllImport("user32.dll")] internal static extern nint GetWindowDC(nint hwnd);
+        [DllImport("user32.dll")] internal static extern int ReleaseDC(nint hwnd, nint dc);
+        [DllImport("user32.dll")] internal static extern bool PrintWindow(nint hwnd, nint dc, uint flags);
+        [DllImport("gdi32.dll")] internal static extern nint CreateCompatibleDC(nint dc);
+        [DllImport("gdi32.dll")] internal static extern nint CreateCompatibleBitmap(nint dc, int width, int height);
+        [DllImport("gdi32.dll")] internal static extern nint SelectObject(nint dc, nint obj);
+        [DllImport("gdi32.dll")] internal static extern bool DeleteObject(nint obj);
+        [DllImport("gdi32.dll")] internal static extern bool DeleteDC(nint dc);
+    }
+
     private static void Capture(MainWindow view, string file)
     {
         var canvas = view.Surface;

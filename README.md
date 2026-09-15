@@ -1,5 +1,17 @@
 # iMessage Exporter Desktop
 
+## 全新独立项目：苏芳便携版
+
+新的 [苏芳 · iMessage](portable/README.md) 位于 `portable/`，直接基于 ReagentX 原引擎源码，**不引用或编译下面旧版封装的代码**。新界面、任务管理、窗口定位、测试与打包均为独立实现。
+
+苏芳色 `#992C49` · 启动按屏幕工作区居中 · PerMonitorV2 · 自包含免安装文件夹。
+
+下载和使用请查看 [Releases](https://github.com/575610871/imessage-exporter-desktop/releases)；构建方法见 [独立项目说明](portable/BUILD.md)。
+
+---
+
+以下内容为保留的 **0.1.x 旧版** 文档，新版便携应用不使用其安装程序。
+
 [![Build Windows](https://github.com/575610871/imessage-exporter-desktop/actions/workflows/build-windows.yml/badge.svg)](https://github.com/575610871/imessage-exporter-desktop/actions/workflows/build-windows.yml)
 
 面向普通 Windows 用户的 iMessage 导出桌面应用。它为 [ReagentX/imessage-exporter](https://github.com/ReagentX/imessage-exporter) 提供中文优先的可视化界面、便携版和标准安装程序。

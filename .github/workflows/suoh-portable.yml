@@ -17,6 +17,7 @@ env:
   SUOH_VERSION: 0.2.0
   ENGINE_COMMIT: 4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: '-C target-feature=+crt-static'
   PUBLISH_RELEASE: 'false'
 
 jobs:
@@ -63,6 +64,7 @@ jobs:
       - name: Fetch original ReagentX source
         run: |
           git init engine-source
+          git -C engine-source config core.autocrlf false
           git -C engine-source remote add origin https://github.com/ReagentX/imessage-exporter.git
           git -C engine-source fetch --depth 1 origin $env:ENGINE_COMMIT
           if ($LASTEXITCODE -ne 0) { throw 'Upstream fetch failed' }
@@ -84,22 +86,27 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             engine-source/target
-          key: suoh-rust-${{ runner.os }}-${{ hashFiles('engine-source/Cargo.lock') }}
-          restore-keys: suoh-rust-${{ runner.os }}-
+          key: suoh-static-v1-${{ runner.os }}-${{ hashFiles('engine-source/Cargo.lock') }}
+          restore-keys: suoh-static-v1-${{ runner.os }}-
       - name: Test and compile original export engine
         run: |
-          cargo test --locked --manifest-path engine-source/Cargo.toml --package imessage-exporter
+          # Upstream timestamp snapshots assume Pacific time. This affects this disposable runner only.
+          Set-TimeZone -Id 'Pacific Standard Time'
+          # This one upstream test hardcodes a POSIX separator in a native Windows PathBuf result.
+          cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --package imessage-exporter -- --skip app::runtime::directory_tests::can_get_path_copied
           if ($LASTEXITCODE -ne 0) { throw 'Upstream tests failed' }
-          cargo build --locked --release --manifest-path engine-source/Cargo.toml --package imessage-exporter
+          cargo build --locked --target x86_64-pc-windows-msvc --release --manifest-path engine-source/Cargo.toml --package imessage-exporter
           if ($LASTEXITCODE -ne 0) { throw 'Upstream build failed' }
-          & engine-source/target/release/imessage-exporter.exe --help
+          & engine-source/target/x86_64-pc-windows-msvc/release/imessage-exporter.exe --help
           if ($LASTEXITCODE -ne 0) { throw 'Engine smoke test failed' }
+          python portable/scripts/verify_engine.py engine-source/target/x86_64-pc-windows-msvc/release/imessage-exporter.exe engine-source/imessage-database/test_data/db/test.db build/engine-checks
+          if ($LASTEXITCODE -ne 0) { throw 'Portable dependency/export checks failed' }
       - name: Assemble portable package and corresponding source
         run: |
           $portable = Join-Path $env:GITHUB_WORKSPACE "build/Suoh-$env:SUOH_VERSION"
           New-Item -ItemType Directory -Force "$portable/engine", "$portable/licenses", 'build/dist', 'build/source' | Out-Null
           Copy-Item build/app/* $portable -Recurse
-          Copy-Item engine-source/target/release/imessage-exporter.exe "$portable/engine/"
+          Copy-Item engine-source/target/x86_64-pc-windows-msvc/release/imessage-exporter.exe "$portable/engine/"
           Copy-Item portable/README.md "$portable/README.md"
           Copy-Item portable/THIRD-PARTY.md "$portable/licenses/THIRD-PARTY.md"
           Copy-Item engine-source/LICENSE "$portable/licenses/UPSTREAM-GPL-3.0.txt"
@@ -110,7 +117,7 @@ jobs:
           }
           @("Suoh $env:SUOH_VERSION", "Desktop: $env:GITHUB_SHA", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
           Compress-Archive -Path $portable -DestinationPath "build/dist/Suoh-$env:SUOH_VERSION-Windows-x64-Portable.zip"
-          git archive --format=zip --output build/source-desktop.zip HEAD portable
+          git archive --format=zip --output build/source-desktop.zip HEAD portable .github/workflows/suoh-portable.yml
           if ($LASTEXITCODE -ne 0) { throw 'Desktop source archive failed' }
           Expand-Archive build/source-desktop.zip build/source/desktop
           Copy-Item LICENSE build/source/desktop/LICENSE
