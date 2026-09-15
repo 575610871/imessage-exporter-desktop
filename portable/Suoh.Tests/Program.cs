@@ -41,11 +41,11 @@ try
     foreach (var media in Enum.GetValues<MediaHandling>())
     foreach (var format in Enum.GetValues<TranscriptKind>())
     {
-        var args = (plan with { Media = media, Transcript = format, EagerImages = true }).Arguments();
-        Check(args.Contains(source), "Unicode/spaced source split into separate arguments.");
-        Check(args.Contains("--no-progress"), "Terminal progress not suppressed.");
-        Check(args.Contains("--no-lazy") == (format == TranscriptKind.Html), "HTML-only switch mapping wrong.");
-        Check(!args.Any(a => a.Contains("password", StringComparison.OrdinalIgnoreCase)), "Credentials belong outside process arguments.");
+        var command = (plan with { Media = media, Transcript = format, EagerImages = true }).Arguments();
+        Check(command.Contains(source), "Unicode/spaced source split into separate arguments.");
+        Check(command.Contains("--no-progress"), "Terminal progress not suppressed.");
+        Check(command.Contains("--no-lazy") == (format == TranscriptKind.Html), "HTML-only switch mapping wrong.");
+        Check(!command.Any(a => a.Contains("password", StringComparison.OrdinalIgnoreCase)), "Credentials belong outside process arguments.");
     }
     Check(plan.Arguments().Contains("2021-01-01"), "Exclusive end date missing.");
     Check(plan.Arguments(true).SequenceEqual(new[] { "--db-path", source, "--platform", "iOS", "--diagnostics" }), "Diagnostic CLI mapping wrong.");

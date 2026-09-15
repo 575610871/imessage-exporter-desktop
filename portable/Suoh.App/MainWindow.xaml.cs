@@ -94,6 +94,8 @@ public partial class MainWindow : Window
         if (_finding || _active) return;
         _finding = true;
         FindButton.IsEnabled = false;
+        ExportButton.IsEnabled = false;
+        DiagnoseButton.IsEnabled = false;
         try
         {
             SetStatus("正在查找本机 Apple 备份目录…");
@@ -104,7 +106,13 @@ public partial class MainWindow : Window
             SetStatus(found.Count > 0 ? $"找到 {found.Count} 个备份，请确认所选目录。" : "没有找到本机备份。可以点击“浏览”选择其他磁盘上的备份。");
         }
         catch (Exception ex) { ShowProblem(ex.Message); }
-        finally { _finding = false; FindButton.IsEnabled = !_active; }
+        finally
+        {
+            _finding = false;
+            FindButton.IsEnabled = !_active;
+            ExportButton.IsEnabled = !_active;
+            DiagnoseButton.IsEnabled = !_active;
+        }
     }
     private void ChooseBackup(object sender, SelectionChangedEventArgs e)
     {
@@ -140,7 +148,8 @@ public partial class MainWindow : Window
             return picker.SelectedDate is { } date ? DateOnly.FromDateTime(date) : null;
         }
         if (!diagnostics && string.IsNullOrWhiteSpace(OutputInput.Text)) throw new ArgumentException("请选择导出位置。");
-        return new ExportPlan(SourceInput.Text.Trim(), diagnostics ? "" : ExportPlan.NewDestination(OutputInput.Text),
+        if (string.IsNullOrWhiteSpace(SourceInput.Text)) throw new ArgumentException("请选择 iPhone 本地备份根目录。");
+        return new ExportPlan(Path.GetFullPath(SourceInput.Text.Trim()), diagnostics ? "" : ExportPlan.NewDestination(OutputInput.Text),
             HtmlChoice.IsChecked == true ? TranscriptKind.Html : TranscriptKind.Txt,
             (MediaHandling)Math.Clamp(MediaChoice.SelectedIndex, 0, 3),
             diagnostics ? null : ReadDate(FromInput), diagnostics ? null : ReadDate(BeforeInput),
@@ -153,7 +162,7 @@ public partial class MainWindow : Window
 
     private async Task RunJob(bool diagnostics)
     {
-        if (_active || _testing) return;
+        if (_active || _finding || _testing) return;
         ExportPlan plan;
         try
         {
