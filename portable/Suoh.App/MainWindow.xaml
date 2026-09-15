@@ -7,7 +7,7 @@
   <Grid x:Name="Surface" Background="{StaticResource Paper}">
     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
     <StackPanel x:Name="Header" Margin="24,18,24,12">
-      <Grid>
+      <Grid x:Name="BrandRow">
         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
         <Border Width="40" Height="40" Background="{StaticResource Suoh}" CornerRadius="12" Margin="0,0,12,0">
           <Viewbox Margin="10"><Path Fill="White" Data="M 2,1 L 18,1 Q 22,1 22,5 L 22,14 Q 22,18 18,18 L 10,18 L 4,23 L 5,18 L 2,18 Q -1,18 -1,14 L -1,5 Q -1,1 2,1 Z" /></Viewbox>
@@ -131,9 +131,9 @@
       </ScrollViewer>
     </Grid>
 
-    <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Background="White" Padding="24,12">
+    <Border x:Name="Footer" Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Background="White" Padding="24,12">
       <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <DockPanel Margin="0,0,0,10">
+        <DockPanel x:Name="JobStatus" Margin="0,0,0,10">
           <TextBlock x:Name="ElapsedText" DockPanel.Dock="Right" Foreground="{StaticResource Muted}" FontSize="12" Margin="12,0,0,0" />
           <TextBlock x:Name="StatusText" Text="准备就绪 · 选择备份后即可开始" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
         </DockPanel>

@@ -54,6 +54,9 @@ public partial class MainWindow : Window
         AsideColumn.Width = narrow ? new GridLength(0) : new GridLength(300);
         Aside.Visibility = narrow || _logView ? Visibility.Collapsed : Visibility.Visible;
         Hero.Visibility = ActualHeight < 740 ? Visibility.Collapsed : Visibility.Visible;
+        BrandRow.Visibility = ActualHeight < 400 ? Visibility.Collapsed : Visibility.Visible;
+        JobStatus.Visibility = ActualHeight < 300 ? Visibility.Collapsed : Visibility.Visible;
+        Footer.Padding = ActualHeight < 400 ? new Thickness(16, 8, 16, 8) : new Thickness(24, 12, 24, 12);
         PortableBadge.Visibility = ActualWidth < 620 ? Visibility.Collapsed : Visibility.Visible;
         FooterNote.Visibility = ActualWidth < 700 ? Visibility.Collapsed : Visibility.Visible;
         Header.Margin = ActualHeight < 500 ? new Thickness(16, 8, 16, 8) : new Thickness(24, 18, 24, 12);
@@ -322,6 +325,7 @@ public partial class MainWindow : Window
 
     private void OnShortcut(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.F1) { ShowGuide(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
         if (e.Key is Key.D0 or Key.NumPad0) { Placement.Recenter(); e.Handled = true; }
         if (e.Key == Key.L) { SwitchPage(true); e.Handled = true; }

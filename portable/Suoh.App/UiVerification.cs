@@ -30,7 +30,7 @@ internal static class UiVerification
         CaptureNativeWindow(view, Path.Combine(output, "00-native-window.png"));
 
         // Real WPF layout at constrained logical sizes. This is NOT a claim of changing Windows system DPI.
-        foreach (var size in new[] { (1120d, 820d), (850d, 680d), (640d, 480d), (651d, 352d) })
+        foreach (var size in new[] { (1120d, 820d), (850d, 680d), (640d, 480d), (651d, 352d), (423d, 208d) })
         {
             view.MinWidth = 1;
             view.MinHeight = 1;
@@ -40,7 +40,7 @@ internal static class UiVerification
             Require(IsInside(view.ExportButton, view.Surface), $"Export action clipped at {size}.");
             Require(IsInside(view.CancelButton, view.Surface), $"Cancel action clipped at {size}.");
             Require(IsInside(view.SettingsTab, view.Surface), $"Settings tab clipped at {size}.");
-            Require(view.SettingsPage.ViewportHeight > 60, $"Settings cannot scroll at {size}.");
+            Require(view.SettingsPage.ViewportHeight > (size.Item2 < 300 ? 40 : 60), $"Settings cannot scroll at {size}.");
             Require((view.Aside.Visibility == Visibility.Visible) == (view.ActualWidth >= 940), $"Aside breakpoint incorrect at {size}.");
             observations.Add(new { check = "real-WPF-layout", width = view.ActualWidth, height = view.ActualHeight, viewport = view.SettingsPage.ViewportHeight });
             Capture(view, Path.Combine(output, $"layout-{(int)size.Item1}x{(int)size.Item2}.png"));
@@ -48,6 +48,8 @@ internal static class UiVerification
 
         view.Advanced.IsExpanded = true;
         view.SettingsPage.ScrollToEnd();
+        await Settle(view);
+        view.RememberOption.BringIntoView();
         await Settle(view);
         Require(IsInside(view.RememberOption, view.Surface), "Lower settings cannot be reached by scrolling.");
         Capture(view, Path.Combine(output, "advanced-narrow.png"));
