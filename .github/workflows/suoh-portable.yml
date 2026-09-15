@@ -1,0 +1,140 @@
+name: Suoh portable (independent rewrite)
+
+on:
+  push:
+    branches: [main]
+    paths: ['portable/**', '.github/workflows/suoh-portable.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: suoh-portable
+  cancel-in-progress: true
+
+env:
+  SUOH_VERSION: 0.2.0
+  ENGINE_COMMIT: 4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  PUBLISH_RELEASE: 'false'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Independent model tests
+        run: |
+          dotnet run --project portable/Suoh.Tests -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Model tests failed' }
+      - name: Build new WPF application
+        run: |
+          powershell -NoProfile -STA -File portable/scripts/Icon.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Icon build failed' }
+          dotnet publish portable/Suoh.App -c Release -r win-x64 --self-contained true -o build/app -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false
+          if ($LASTEXITCODE -ne 0) { throw 'WPF build failed' }
+      - name: Real native-window and WPF layout checks
+        run: |
+          New-Item -ItemType Directory -Force build/ui | Out-Null
+          $report = Join-Path $env:GITHUB_WORKSPACE 'build/ui'
+          $app = Start-Process -FilePath build/app/Suoh.exe -ArgumentList @('--ui-test', $report) -PassThru
+          if (-not $app.WaitForExit(60000)) { $app.Kill(); throw 'UI verification timed out' }
+          if ($app.ExitCode -ne 0) {
+            Get-Content build/ui/ui-failure.txt -ErrorAction SilentlyContinue
+            throw "UI verification failed: $($app.ExitCode)"
+          }
+          Get-Content build/ui/ui-checks.json
+      - name: Upload UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Suoh-UI-evidence
+          path: build/ui/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Fetch original ReagentX source
+        run: |
+          git init engine-source
+          git -C engine-source remote add origin https://github.com/ReagentX/imessage-exporter.git
+          git -C engine-source fetch --depth 1 origin $env:ENGINE_COMMIT
+          if ($LASTEXITCODE -ne 0) { throw 'Upstream fetch failed' }
+          git -C engine-source checkout --detach FETCH_HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Upstream checkout failed' }
+          git -C engine-source apply "$env:GITHUB_WORKSPACE/portable/patches/suoh-password.patch"
+          if ($LASTEXITCODE -ne 0) { throw 'GUI password bridge patch failed' }
+          git -C engine-source diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'Upstream patch validation failed' }
+      - name: Rust toolchain
+        run: |
+          rustup set auto-self-update disable
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Rust setup failed' }
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            engine-source/target
+          key: suoh-rust-${{ runner.os }}-${{ hashFiles('engine-source/Cargo.lock') }}
+          restore-keys: suoh-rust-${{ runner.os }}-
+      - name: Test and compile original export engine
+        run: |
+          cargo test --locked --manifest-path engine-source/Cargo.toml --package imessage-exporter
+          if ($LASTEXITCODE -ne 0) { throw 'Upstream tests failed' }
+          cargo build --locked --release --manifest-path engine-source/Cargo.toml --package imessage-exporter
+          if ($LASTEXITCODE -ne 0) { throw 'Upstream build failed' }
+          & engine-source/target/release/imessage-exporter.exe --help
+          if ($LASTEXITCODE -ne 0) { throw 'Engine smoke test failed' }
+      - name: Assemble portable package and corresponding source
+        run: |
+          $portable = Join-Path $env:GITHUB_WORKSPACE "build/Suoh-$env:SUOH_VERSION"
+          New-Item -ItemType Directory -Force "$portable/engine", "$portable/licenses", 'build/dist', 'build/source' | Out-Null
+          Copy-Item build/app/* $portable -Recurse
+          Copy-Item engine-source/target/release/imessage-exporter.exe "$portable/engine/"
+          Copy-Item portable/README.md "$portable/README.md"
+          Copy-Item portable/THIRD-PARTY.md "$portable/licenses/THIRD-PARTY.md"
+          Copy-Item engine-source/LICENSE "$portable/licenses/UPSTREAM-GPL-3.0.txt"
+          Copy-Item LICENSE "$portable/licenses/SUOH-GPL-3.0.txt"
+          $dotnetDir = Split-Path (Get-Command dotnet).Source
+          foreach ($license in @('LICENSE.txt', 'ThirdPartyNotices.txt')) {
+            if (Test-Path "$dotnetDir/$license") { Copy-Item "$dotnetDir/$license" "$portable/licenses/DOTNET-$license" }
+          }
+          @("Suoh $env:SUOH_VERSION", "Desktop: $env:GITHUB_SHA", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
+          Compress-Archive -Path $portable -DestinationPath "build/dist/Suoh-$env:SUOH_VERSION-Windows-x64-Portable.zip"
+          git archive --format=zip --output build/source-desktop.zip HEAD portable
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop source archive failed' }
+          Expand-Archive build/source-desktop.zip build/source/desktop
+          Copy-Item LICENSE build/source/desktop/LICENSE
+          git -C engine-source archive --format=zip --output "$env:GITHUB_WORKSPACE/build/source-engine.zip" HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Engine source archive failed' }
+          Expand-Archive build/source-engine.zip build/source/engine-original
+          Copy-Item portable/BUILD.md build/source/BUILD.md
+          Compress-Archive -Path build/source/* -DestinationPath "build/dist/Suoh-$env:SUOH_VERSION-Source.zip"
+          Get-ChildItem build/dist -File | Sort-Object Name | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } | Set-Content build/dist/SHA256SUMS.txt -Encoding ascii
+      - name: Upload portable deliverables
+        uses: actions/upload-artifact@v4
+        with:
+          name: Suoh-0.2.0-Windows-x64
+          path: build/dist/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish new portable release
+        if: env.PUBLISH_RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v$env:SUOH_VERSION"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) { throw 'Release already exists; refusing to replace previously published assets.' }
+          $files = Get-ChildItem build/dist -File | ForEach-Object FullName
+          gh release create $tag @files --target $env:GITHUB_SHA --title "苏芳 $env:SUOH_VERSION · 全新 Windows 便携版" --notes-file portable/RELEASE.md --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }

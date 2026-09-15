@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'patches/**'
+      - 'installer/**'
+      - 'Directory.Build.props'
   workflow_dispatch:
 
 permissions:

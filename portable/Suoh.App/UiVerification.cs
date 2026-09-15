@@ -1,0 +1,87 @@
+using System.IO;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using Suoh.Model;
+
+namespace Suoh.App;
+
+/// <summary>Real WPF/native-window checks on Windows CI. Does not touch personal backups or saved preferences.</summary>
+internal static class UiVerification
+{
+    public static async Task<int> Run(MainWindow view, string output)
+    {
+        Directory.CreateDirectory(output);
+        var observations = new List<object>();
+        await Settle(view);
+        var placement = view.Placement;
+        Require(placement.PerMonitorV2, "The window must actually be PerMonitorV2, not merely declare it in source.");
+        var expected = ScreenLayout.OpeningBounds(placement.Available, placement.Dpi / 96);
+        var actual = placement.Current;
+        Require(placement.Available.Encloses(actual), "Startup native rectangle (including caption) is outside the work area.");
+        Require(Math.Abs(actual.X - expected.X) <= 2 && Math.Abs(actual.Y - expected.Y) <= 2,
+            "Startup is not centered after rendering.");
+        observations.Add(new { check = "native-startup", dpi = placement.Dpi, actual, work = placement.Available });
+        Capture(view, Path.Combine(output, "01-startup.png"));
+
+        // Real WPF layout at constrained logical sizes. This is NOT a claim of changing Windows system DPI.
+        foreach (var size in new[] { (1120d, 820d), (850d, 680d), (640d, 480d), (651d, 352d) })
+        {
+            view.MinWidth = 1;
+            view.MinHeight = 1;
+            view.Width = size.Item1;
+            view.Height = size.Item2;
+            await Settle(view);
+            Require(IsInside(view.ExportButton, view.Surface), $"Export action clipped at {size}.");
+            Require(IsInside(view.CancelButton, view.Surface), $"Cancel action clipped at {size}.");
+            Require(IsInside(view.SettingsTab, view.Surface), $"Settings tab clipped at {size}.");
+            Require(view.SettingsPage.ViewportHeight > 60, $"Settings cannot scroll at {size}.");
+            Require((view.Aside.Visibility == Visibility.Visible) == (view.ActualWidth >= 940), $"Aside breakpoint incorrect at {size}.");
+            observations.Add(new { check = "real-WPF-layout", width = view.ActualWidth, height = view.ActualHeight, viewport = view.SettingsPage.ViewportHeight });
+            Capture(view, Path.Combine(output, $"layout-{(int)size.Item1}x{(int)size.Item2}.png"));
+        }
+
+        var work = placement.Available;
+        placement.MoveTo(new ScreenBox(work.X - 200, work.Y - 400, 800, 600));
+        placement.Constrain();
+        await Settle(view);
+        Require(placement.Available.Encloses(placement.Current), "Off-screen repair did not keep the native caption inside work area.");
+        placement.Recenter();
+        await Settle(view);
+        Require(placement.Available.Encloses(placement.Current), "Recenter shortcut produced off-screen bounds.");
+        Require(view.MediaChoice.Text.Contains("保留原文件"), "Attachment choice must render a friendly label.");
+        Require(!File.Exists(PortableOptions.FilePath), "UI tests must not write portable preferences.");
+        observations.Add(new { check = "off-screen-repair-and-recenter", actual = placement.Current });
+        File.WriteAllText(Path.Combine(output, "ui-checks.json"), JsonSerializer.Serialize(observations, new JsonSerializerOptions { WriteIndented = true }));
+        return 0;
+    }
+
+    private static async Task Settle(MainWindow view)
+    {
+        await view.Dispatcher.InvokeAsync(() => view.UpdateLayout(), DispatcherPriority.ContextIdle);
+        await Task.Delay(180);
+        await view.Dispatcher.InvokeAsync(() => view.UpdateLayout(), DispatcherPriority.ContextIdle);
+    }
+
+    private static bool IsInside(FrameworkElement item, FrameworkElement canvas)
+    {
+        var rect = item.TransformToAncestor(canvas).TransformBounds(new Rect(new Size(item.ActualWidth, item.ActualHeight)));
+        return rect.Width > 0 && rect.Height > 0 && rect.Left >= 0 && rect.Top >= 0 &&
+            rect.Right <= canvas.ActualWidth + 1 && rect.Bottom <= canvas.ActualHeight + 1;
+    }
+    private static void Require(bool value, string reason) { if (!value) throw new InvalidOperationException(reason); }
+    private static void Capture(MainWindow view, string file)
+    {
+        var canvas = view.Surface;
+        var dpi = VisualTreeHelper.GetDpi(canvas);
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(canvas.ActualWidth * dpi.DpiScaleX),
+            (int)Math.Ceiling(canvas.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        bitmap.Render(canvas);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(file);
+        encoder.Save(stream);
+    }
+}
