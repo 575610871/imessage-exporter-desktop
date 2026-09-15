@@ -5,6 +5,8 @@ Prerequisites: Windows x64, .NET 10 SDK, Rust stable (edition 2024), MSVC C++ bu
 The only desktop projects are `portable/Suoh.App`, `portable/Suoh.Model` and `portable/Suoh.Tests`.
 They do not reference or compile the previous desktop application's source. The nearest `portable/Directory.Build.props` is independent.
 
+The application project sets `AssemblyName` to `iMessage Exporter Desktop`, producing **iMessage Exporter Desktop.exe**. Internal `Suoh.App` namespaces, project folders and the original `engine/imessage-exporter.exe` are unchanged. Quote the application path in PowerShell because the output name contains spaces.
+
 From a repository checkout:
 
 ```powershell

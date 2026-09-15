@@ -140,7 +140,7 @@
         <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
           <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
             <ProgressBar x:Name="Activity" Height="3" Foreground="{StaticResource Suoh}" Background="{StaticResource Wash}" BorderThickness="0" />
-            <TextBlock x:Name="FooterNote" Text="苏芳 0.2.0 · 便携版" Style="{StaticResource Hint}" Margin="0,4,0,0" />
+            <TextBlock x:Name="FooterNote" Text="苏芳 0.2.1 · 便携版" Style="{StaticResource Hint}" Margin="0,4,0,0" />
           </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal">
             <Button x:Name="OpenResultButton" Content="打开结果" Click="OpenResult" IsEnabled="False" Margin="0,0,8,0" Padding="12,9" />

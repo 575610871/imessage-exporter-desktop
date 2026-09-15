@@ -1,6 +1,8 @@
 全新独立编写的 Windows 便携应用，不基于 0.1.x 的桌面封装代码。导出引擎从 ReagentX/imessage-exporter 固定源码重新编译。
 
-下载 **Suoh-0.2.0-Windows-x64-Portable.zip**，完整解压，双击文件夹内 **Suoh.exe**。无需安装或预装 .NET；请保留 engine 文件夹。
+0.2.1 将主程序名称改为 **iMessage Exporter Desktop.exe**，并同步修改构建、启动测试、提示与文档。苏芳主题、窗口居中及 DPI 适配保持不变。
+
+下载 **Suoh-0.2.1-Windows-x64-Portable.zip**，完整解压到新文件夹，双击 **iMessage Exporter Desktop.exe**。无需安装或预装 .NET；请保留 engine 文件夹。
 
 - 苏芳色 #992C49，新分步界面和独立任务日志页。
 - 启动时按鼠标所在屏幕工作区限高限宽，再居中，保留原生标题栏。

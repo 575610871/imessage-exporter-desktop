@@ -320,7 +320,7 @@ public partial class MainWindow : Window
         MessageBox.Show(this, message, "苏芳 · 请检查", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ShowGuide(object sender, RoutedEventArgs e) => MessageBox.Show(this,
-        "1. 用 Apple Devices 或 iTunes 将 iPhone 备份到这台电脑。\n2. 选择包含 Manifest.plist 和 Manifest.db 的设备目录。\n3. 选择输出位置、格式及附件方式。加密备份请填写备份密码。\n4. 点击开始导出；HTML 文件可用浏览器打开。\n\n不直接连接手机、不下载 iCloud 数据，也不会上传聊天记录。云端尚未下载到备份的内容无法凭空恢复。\n\n窗口：每次启动在鼠标所在屏幕的可用区域居中。Ctrl+0 可重新居中，Ctrl+L 查看日志。\n\n便携：完整解压后运行 Suoh.exe，无需安装。可选的偏好设置位于程序旁 data 文件夹；密码不会保存。引擎可能暂存解密数据，正常结束/取消后尝试清理，崩溃时可能留下临时文件。\n\n苏芳 0.2.0 · 原引擎 ReagentX/imessage-exporter · GPL-3.0-or-later。",
+        "1. 用 Apple Devices 或 iTunes 将 iPhone 备份到这台电脑。\n2. 选择包含 Manifest.plist 和 Manifest.db 的设备目录。\n3. 选择输出位置、格式及附件方式。加密备份请填写备份密码。\n4. 点击开始导出；HTML 文件可用浏览器打开。\n\n不直接连接手机、不下载 iCloud 数据，也不会上传聊天记录。云端尚未下载到备份的内容无法凭空恢复。\n\n窗口：每次启动在鼠标所在屏幕的可用区域居中。Ctrl+0 可重新居中，Ctrl+L 查看日志。F1 打开指南。\n\n便携：完整解压后运行 iMessage Exporter Desktop.exe，无需安装。可选的偏好设置位于程序旁 data 文件夹；密码不会保存。引擎可能暂存解密数据，正常结束/取消后尝试清理，崩溃时可能留下临时文件。\n\n苏芳 0.2.1 · 原引擎 ReagentX/imessage-exporter · GPL-3.0-or-later。",
         "苏芳 · 使用指南", MessageBoxButton.OK, MessageBoxImage.Information);
 
     private void OnShortcut(object sender, KeyEventArgs e)

@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SUOH_VERSION: 0.2.0
+  SUOH_VERSION: 0.2.1
   ENGINE_COMMIT: 4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: '-C target-feature=+crt-static'
@@ -46,7 +46,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force build/ui | Out-Null
           $report = Join-Path $env:GITHUB_WORKSPACE 'build/ui'
-          $app = Start-Process -FilePath build/app/Suoh.exe -ArgumentList @('--ui-test', $report) -PassThru
+          $app = Start-Process -FilePath 'build/app/iMessage Exporter Desktop.exe' -ArgumentList @('--ui-test', $report) -PassThru
           if (-not $app.WaitForExit(60000)) { $app.Kill(); throw 'UI verification timed out' }
           if ($app.ExitCode -ne 0) {
             Get-Content build/ui/ui-failure.txt -ErrorAction SilentlyContinue
@@ -130,7 +130,7 @@ jobs:
       - name: Upload portable deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: Suoh-0.2.0-Windows-x64
+          name: Suoh-${{ env.SUOH_VERSION }}-Windows-x64
           path: build/dist/*
           if-no-files-found: error
           retention-days: 30

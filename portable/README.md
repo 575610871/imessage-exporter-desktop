@@ -1,4 +1,4 @@
-# 苏芳 · iMessage 0.2.0
+# 苏芳 · iMessage 0.2.1
 
 基于 **ReagentX/imessage-exporter 原始 Rust 导出引擎**，从零编写的独立 Windows 图形应用。
 此目录不引用、不编译旧版 `src/`、`tests/` 或旧版封装项目；使用新的 C# / WPF / .NET 10 项目。
@@ -7,8 +7,8 @@
 
 ## 使用
 
-1. 将 `Suoh-0.2.0-Windows-x64-Portable.zip` 完整解压到可写文件夹。
-2. 双击 **Suoh.exe**。保留旁边的 `engine` 和 `licenses` 文件夹，无需安装 .NET。
+1. 将 `Suoh-0.2.1-Windows-x64-Portable.zip` 完整解压到新的可写文件夹，不要覆盖旧版目录。
+2. 双击 **iMessage Exporter Desktop.exe**。保留旁边的 `engine` 和 `licenses` 文件夹，无需安装 .NET。
 3. 选择 iPhone 本地备份根目录（含 `Manifest.plist` 和 `Manifest.db`）。也可以“查找本机备份”。
 4. 选择导出位置、HTML / TXT 和附件方式，点击“开始导出”。每次自动创建新目录，不覆盖已有导出。
 

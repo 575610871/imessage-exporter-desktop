@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — Executable naming
+
+- Rename the portable GUI executable to `iMessage Exporter Desktop.exe` through its build output name.
+- Update the quoted Windows startup-test path, user-facing messages and documentation.
+- Keep the independent implementation, upstream engine name, Suoh theme and DPI behavior unchanged.
+
 ## 0.2.0 — Suoh independent rewrite
 
 - New standalone projects under `portable/`; no references to the 0.1.x wrapper.
