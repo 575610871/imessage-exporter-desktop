@@ -24,7 +24,7 @@ For the corresponding-source ZIP, `desktop/portable` is the new desktop source a
 
 For GUI checks run the published executable with `--ui-test <absolute-output-folder>` using `Start-Process -Wait -PassThru` and inspect its exit code. This mode skips personal preferences and backup scanning, creates synthetic UI screenshots, and does not launch an export.
 
-CI workflow `.github/workflows/suoh-portable.yml` builds, tests and packages this independent application. Release is disabled during visual review and enabled only after the evidence has been inspected.
+CI workflow `.github/workflows/suoh-portable.yml` builds, tests and packages this independent application. Release was disabled for the initial visual review. Publishing requires every validation step to pass and never overwrites an existing version.
 
 Windows upstream test notes: checkout with `core.autocrlf=false` to preserve Askama template line endings; the upstream time snapshots expect Pacific time. CI sets that timezone only on its disposable runner. One upstream assertion, `app::runtime::directory_tests::can_get_path_copied`, hardcodes `attachments/d.jpg` where Windows produces `attachments\\d.jpg`; only that assertion is excluded on Windows. Other tests still fail the build if they fail. No production exporter behavior is changed for these test-environment adjustments.
 

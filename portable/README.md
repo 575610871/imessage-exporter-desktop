@@ -3,6 +3,8 @@
 基于 **ReagentX/imessage-exporter 原始 Rust 导出引擎**，从零编写的独立 Windows 图形应用。
 此目录不引用、不编译旧版 `src/`、`tests/` 或旧版封装项目；使用新的 C# / WPF / .NET 10 项目。
 
+![真实 Windows 界面截图（构建机的 1024×720 工作区，示例路径，无用户数据）](docs/preview.png)
+
 ## 使用
 
 1. 将 `Suoh-0.2.0-Windows-x64-Portable.zip` 完整解压到可写文件夹。

@@ -54,13 +54,24 @@ public sealed class DisplayPlacement
         try
         {
             var work = ReadWorkArea(display);
-            // Cross to the destination first, so GetDpiForWindow reports that display's actual DPI.
-            Native.SetWindowPos(_hwnd, 0, work.X + work.Width / 2, work.Y + work.Height / 2,
-                0, 0, 0x0015); // NOACTIVATE | NOZORDER | NOSIZE
-            AdjustMinimums(work);
-            MoveTo(ScreenLayout.OpeningBounds(work, Dpi / 96));
+            // Use a small temporary native rectangle wholly on the target display. Moving a large
+            // old window by its top-left alone can leave most of it on a different-DPI neighbour.
+            _view.MinWidth = 1;
+            _view.MinHeight = 1;
+            var smallWidth = Math.Min(160, work.Width);
+            var smallHeight = Math.Min(120, work.Height);
+            MoveTo(new ScreenBox(work.X + (work.Width - smallWidth) / 2,
+                work.Y + (work.Height - smallHeight) / 2, smallWidth, smallHeight));
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                var dpi = Dpi;
+                AdjustMinimums(work);
+                MoveTo(ScreenLayout.OpeningBounds(work, dpi / 96));
+                if (Math.Abs(Dpi - dpi) < 0.01) break;
+            }
         }
         finally { _moving = false; }
+        ScheduleVisibilityCheck();
     }
 
     public void Constrain()
