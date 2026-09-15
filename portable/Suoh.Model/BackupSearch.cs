@@ -1,4 +1,4 @@
-namespace Suoh.Model;
+namespace IMessageExporterDesktopSuohEdition.Model;
 
 public static class BackupSearch
 {

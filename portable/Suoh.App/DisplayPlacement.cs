@@ -2,9 +2,9 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using Suoh.Model;
+using IMessageExporterDesktopSuohEdition.Model;
 
-namespace Suoh.App;
+namespace IMessageExporterDesktopSuohEdition;
 
 public sealed class DisplayPlacement
 {

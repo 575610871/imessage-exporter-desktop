@@ -1,8 +1,8 @@
 # iMessage Exporter Desktop
 
-## 全新独立项目：苏芳便携版
+## 全新独立项目：Suoh Edition 便携版
 
-新的 [苏芳 · iMessage](portable/README.md) 位于 `portable/`，直接基于 ReagentX 原引擎源码，**不引用或编译下面旧版封装的代码**。新界面、任务管理、窗口定位、测试与打包均为独立实现。
+新的 [iMessage Exporter Desktop Suoh Edition](portable/README.md) 位于 `portable/`，直接基于 ReagentX 原引擎源码，**不引用或编译下面旧版封装的代码**。新界面、任务管理、窗口定位、测试与打包均为独立实现。
 
 苏芳色 `#992C49` · 启动按屏幕工作区居中 · PerMonitorV2 · 自包含免安装文件夹。
 

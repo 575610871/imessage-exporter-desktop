@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using Suoh.Model;
+using IMessageExporterDesktopSuohEdition.Model;
 
-namespace Suoh.App;
+namespace IMessageExporterDesktopSuohEdition;
 
 /// <summary>Starts the upstream Rust binary locally, with no shell and no credentials in arguments.</summary>
 public sealed class EngineProcess
@@ -29,7 +29,7 @@ public sealed class EngineProcess
 
     public async Task<int> Execute(ExportPlan plan, bool diagnostics, string password, Action<string> log, CancellationToken stop)
     {
-        if (!File.Exists(Binary)) throw new FileNotFoundException("缺少 engine\\imessage-exporter.exe。请完整解压便携包，不能只取出 iMessage Exporter Desktop.exe。", Binary);
+        if (!File.Exists(Binary)) throw new FileNotFoundException($"缺少 engine\\imessage-exporter.exe。请完整解压便携包，不能只取出 {App.ExecutableName}。", Binary);
         stop.ThrowIfCancellationRequested();
         var scratch = Path.Combine(Path.GetTempPath(), "Suoh-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(scratch);

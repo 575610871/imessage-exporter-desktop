@@ -5,4 +5,4 @@
 - The upstream engine's Rust dependencies and their pinned versions are documented in the corresponding `Cargo.lock`; source package includes the original manifests and licenses. Cargo retrieves dependency source during a build.
 - ImageMagick and FFmpeg are optional, external user-supplied programs, not included in this distribution.
 
-Suoh is a community desktop application, not an Apple product and not an official ReagentX release.
+iMessage Exporter Desktop Suoh Edition is a community desktop application, not an Apple product and not an official ReagentX release.

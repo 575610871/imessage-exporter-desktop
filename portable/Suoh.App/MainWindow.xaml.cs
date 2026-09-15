@@ -9,9 +9,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using Suoh.Model;
+using IMessageExporterDesktopSuohEdition.Model;
 
-namespace Suoh.App;
+namespace IMessageExporterDesktopSuohEdition;
 
 public partial class MainWindow : Window
 {
@@ -296,7 +296,7 @@ public partial class MainWindow : Window
     private void SaveLog(object sender, RoutedEventArgs e)
     {
         FlushLog();
-        var save = new SaveFileDialog { Title = "保存日志（分享前请检查隐私信息）", FileName = "Suoh-log.txt", Filter = "文本文件|*.txt" };
+        var save = new SaveFileDialog { Title = "保存日志（分享前请检查隐私信息）", FileName = "imessage-exporter-desktop-suoh-edition-log.txt", Filter = "文本文件|*.txt" };
         if (save.ShowDialog(this) != true) return;
         try { File.WriteAllText(save.FileName, LogOutput.Text, new UTF8Encoding(true)); }
         catch (Exception ex) { ShowProblem("无法保存日志：" + ex.Message); }
@@ -317,11 +317,11 @@ public partial class MainWindow : Window
     private void ShowProblem(string message)
     {
         SetStatus(message, true);
-        MessageBox.Show(this, message, "苏芳 · 请检查", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(this, message, App.DisplayName + " · 请检查", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ShowGuide(object sender, RoutedEventArgs e) => MessageBox.Show(this,
-        "1. 用 Apple Devices 或 iTunes 将 iPhone 备份到这台电脑。\n2. 选择包含 Manifest.plist 和 Manifest.db 的设备目录。\n3. 选择输出位置、格式及附件方式。加密备份请填写备份密码。\n4. 点击开始导出；HTML 文件可用浏览器打开。\n\n不直接连接手机、不下载 iCloud 数据，也不会上传聊天记录。云端尚未下载到备份的内容无法凭空恢复。\n\n窗口：每次启动在鼠标所在屏幕的可用区域居中。Ctrl+0 可重新居中，Ctrl+L 查看日志。F1 打开指南。\n\n便携：完整解压后运行 iMessage Exporter Desktop.exe，无需安装。可选的偏好设置位于程序旁 data 文件夹；密码不会保存。引擎可能暂存解密数据，正常结束/取消后尝试清理，崩溃时可能留下临时文件。\n\n苏芳 0.2.1 · 原引擎 ReagentX/imessage-exporter · GPL-3.0-or-later。",
-        "苏芳 · 使用指南", MessageBoxButton.OK, MessageBoxImage.Information);
+        $"1. 用 Apple Devices 或 iTunes 将 iPhone 备份到这台电脑。\n2. 选择包含 Manifest.plist 和 Manifest.db 的设备目录。\n3. 选择输出位置、格式及附件方式。加密备份请填写备份密码。\n4. 点击开始导出；HTML 文件可用浏览器打开。\n\n不直接连接手机、不下载 iCloud 数据，也不会上传聊天记录。云端尚未下载到备份的内容无法凭空恢复。\n\n窗口：每次启动在鼠标所在屏幕的可用区域居中。Ctrl+0 可重新居中，Ctrl+L 查看日志。F1 打开指南。\n\n便携：完整解压后运行 {App.ExecutableName}，无需安装。可选的偏好设置位于程序旁 data 文件夹；密码不会保存。引擎可能暂存解密数据，正常结束/取消后尝试清理，崩溃时可能留下临时文件。\n\n{App.DisplayName} {App.DisplayVersion}\n原引擎 ReagentX/imessage-exporter · GPL-3.0-or-later。",
+        App.DisplayName + " · 使用指南", MessageBoxButton.OK, MessageBoxImage.Information);
 
     private void OnShortcut(object sender, KeyEventArgs e)
     {
@@ -334,7 +334,7 @@ public partial class MainWindow : Window
     {
         if (!_active) { StorePreferences(); return; }
         e.Cancel = true;
-        if (MessageBox.Show(this, "任务仍在运行。要停止导出并关闭窗口吗？部分导出文件会保留。", "苏芳", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        if (MessageBox.Show(this, "任务仍在运行。要停止导出并关闭窗口吗？部分导出文件会保留。", App.DisplayName, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         _closeAfterStop = true;
         _stop?.Cancel();
     }

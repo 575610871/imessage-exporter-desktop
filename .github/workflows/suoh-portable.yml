@@ -1,4 +1,4 @@
-name: Suoh portable (independent rewrite)
+name: iMessage Exporter Desktop Suoh Edition (portable)
 
 on:
   push:
@@ -14,7 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SUOH_VERSION: 0.2.1
+  SUOH_VERSION: 0.2.2
+  SUOH_PRODUCT_NAME: iMessage Exporter Desktop Suoh Edition
+  SUOH_PACKAGE_NAME: imessage-exporter-desktop-suoh-edition
   ENGINE_COMMIT: 4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: '-C target-feature=+crt-static'
@@ -46,7 +48,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force build/ui | Out-Null
           $report = Join-Path $env:GITHUB_WORKSPACE 'build/ui'
-          $app = Start-Process -FilePath 'build/app/iMessage Exporter Desktop.exe' -ArgumentList @('--ui-test', $report) -PassThru
+          $exe = Join-Path 'build/app' "$($env:SUOH_PRODUCT_NAME).exe"
+          $app = Start-Process -FilePath $exe -ArgumentList @('--ui-test', ('"{0}"' -f $report)) -PassThru
           if (-not $app.WaitForExit(60000)) { $app.Kill(); throw 'UI verification timed out' }
           if ($app.ExitCode -ne 0) {
             Get-Content build/ui/ui-failure.txt -ErrorAction SilentlyContinue
@@ -57,7 +60,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Suoh-UI-evidence
+          name: imessage-exporter-desktop-suoh-edition-UI-evidence
           path: build/ui/
           if-no-files-found: warn
           retention-days: 14
@@ -92,7 +95,7 @@ jobs:
         run: |
           # Upstream timestamp snapshots assume Pacific time. This affects this disposable runner only.
           Set-TimeZone -Id 'Pacific Standard Time'
-          # This one upstream test hardcodes a POSIX separator in a native Windows PathBuf result.
+          # This upstream path-test prefix matches two tests; its POSIX separator assertion differs on Windows.
           cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --package imessage-exporter -- --skip app::runtime::directory_tests::can_get_path_copied
           if ($LASTEXITCODE -ne 0) { throw 'Upstream tests failed' }
           cargo build --locked --target x86_64-pc-windows-msvc --release --manifest-path engine-source/Cargo.toml --package imessage-exporter
@@ -103,7 +106,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Portable dependency/export checks failed' }
       - name: Assemble portable package and corresponding source
         run: |
-          $portable = Join-Path $env:GITHUB_WORKSPACE "build/Suoh-$env:SUOH_VERSION"
+          $portable = Join-Path $env:GITHUB_WORKSPACE "build/$env:SUOH_PRODUCT_NAME"
           New-Item -ItemType Directory -Force "$portable/engine", "$portable/licenses", 'build/dist', 'build/source' | Out-Null
           Copy-Item build/app/* $portable -Recurse
           Copy-Item engine-source/target/x86_64-pc-windows-msvc/release/imessage-exporter.exe "$portable/engine/"
@@ -115,8 +118,8 @@ jobs:
           foreach ($license in @('LICENSE.txt', 'ThirdPartyNotices.txt')) {
             if (Test-Path "$dotnetDir/$license") { Copy-Item "$dotnetDir/$license" "$portable/licenses/DOTNET-$license" }
           }
-          @("Suoh $env:SUOH_VERSION", "Desktop: $env:GITHUB_SHA", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
-          Compress-Archive -Path $portable -DestinationPath "build/dist/Suoh-$env:SUOH_VERSION-Windows-x64-Portable.zip"
+          @("$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION", "Namespace: IMessageExporterDesktopSuohEdition", "Desktop: $env:GITHUB_SHA", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
+          Compress-Archive -Path $portable -DestinationPath "build/dist/$env:SUOH_PACKAGE_NAME-$env:SUOH_VERSION-win-x64-portable.zip"
           git archive --format=zip --output build/source-desktop.zip HEAD portable .github/workflows/suoh-portable.yml
           if ($LASTEXITCODE -ne 0) { throw 'Desktop source archive failed' }
           Expand-Archive build/source-desktop.zip build/source/desktop
@@ -125,12 +128,50 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Engine source archive failed' }
           Expand-Archive build/source-engine.zip build/source/engine-original
           Copy-Item portable/BUILD.md build/source/BUILD.md
-          Compress-Archive -Path build/source/* -DestinationPath "build/dist/Suoh-$env:SUOH_VERSION-Source.zip"
+          Compress-Archive -Path build/source/* -DestinationPath "build/dist/$env:SUOH_PACKAGE_NAME-$env:SUOH_VERSION-source.zip"
           Get-ChildItem build/dist -File | Sort-Object Name | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } | Set-Content build/dist/SHA256SUMS.txt -Encoding ascii
+      - name: Verify extracted renamed portable package
+        run: |
+          $extracted = Join-Path $env:GITHUB_WORKSPACE 'build/portable extraction'
+          $report = Join-Path $env:GITHUB_WORKSPACE 'build/portable launch checks'
+          Expand-Archive -LiteralPath "build/dist/$env:SUOH_PACKAGE_NAME-$env:SUOH_VERSION-win-x64-portable.zip" -DestinationPath $extracted
+          $roots = @(Get-ChildItem -LiteralPath $extracted)
+          if ($roots.Count -ne 1 -or $roots[0].Name -cne $env:SUOH_PRODUCT_NAME -or -not $roots[0].PSIsContainer) { throw 'Portable folder name mismatch' }
+          $folder = $roots[0].FullName
+          $exe = Join-Path $folder "$($env:SUOH_PRODUCT_NAME).exe"
+          $engine = [System.IO.Path]::Combine($folder, 'engine', 'imessage-exporter.exe')
+          if (-not (Test-Path -LiteralPath $exe) -or -not (Test-Path -LiteralPath $engine)) { throw 'Portable executable or engine missing' }
+          $executables = @(Get-ChildItem -LiteralPath $folder -File -Filter '*.exe')
+          if ($executables.Count -ne 1 -or $executables[0].Name -cne "$($env:SUOH_PRODUCT_NAME).exe") { throw 'Unexpected old executable in portable root' }
+          $metadata = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
+          if ($metadata.ProductName -cne $env:SUOH_PRODUCT_NAME -or $metadata.FileDescription -cne $env:SUOH_PRODUCT_NAME) { throw 'Windows file properties have the wrong product name' }
+          # Different working directory and spaces in both the executable and report paths.
+          $app = Start-Process -FilePath $exe -WorkingDirectory $extracted -ArgumentList @('--ui-test', ('"{0}"' -f $report)) -PassThru
+          if (-not $app.WaitForExit(60000)) { $app.Kill(); throw 'Packaged UI verification timed out' }
+          if ($app.ExitCode -ne 0) {
+            Get-Content -LiteralPath (Join-Path $report 'ui-failure.txt') -ErrorAction SilentlyContinue
+            throw "Packaged UI verification failed: $($app.ExitCode)"
+          }
+          $checks = Get-Content -LiteralPath (Join-Path $report 'ui-checks.json') -Raw | ConvertFrom-Json
+          $identity = $checks | Where-Object check -eq 'edition-identity'
+          if ($identity.engine -cne $engine) { throw 'GUI engine lookup is not relative to the renamed portable folder' }
+          python portable/scripts/verify_engine.py $engine engine-source/imessage-database/test_data/db/test.db 'build/packaged-engine-checks'
+          if ($LASTEXITCODE -ne 0) { throw 'Extracted engine export checks failed' }
+          Get-Content -LiteralPath (Join-Path $report 'ui-checks.json')
+      - name: Upload packaged launch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imessage-exporter-desktop-suoh-edition-package-evidence
+          path: |
+            build/portable launch checks/
+            build/packaged-engine-checks/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload portable deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: Suoh-${{ env.SUOH_VERSION }}-Windows-x64
+          name: imessage-exporter-desktop-suoh-edition-${{ env.SUOH_VERSION }}-win-x64
           path: build/dist/*
           if-no-files-found: error
           retention-days: 30
@@ -146,5 +187,5 @@ jobs:
             exit 0
           }
           $files = Get-ChildItem build/dist -File | ForEach-Object FullName
-          gh release create $tag @files --target $env:GITHUB_SHA --title "苏芳 $env:SUOH_VERSION · 全新 Windows 便携版" --notes-file portable/RELEASE.md --repo $env:GITHUB_REPOSITORY
+          gh release create $tag @files --target $env:GITHUB_SHA --title "$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION" --notes-file portable/RELEASE.md --repo $env:GITHUB_REPOSITORY
           if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }

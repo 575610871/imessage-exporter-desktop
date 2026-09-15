@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Suoh.Model;
+namespace IMessageExporterDesktopSuohEdition.Model;
 
 public enum TranscriptKind { Html, Txt }
 public enum MediaHandling { Originals, None, Images, All }

@@ -1,4 +1,4 @@
-using Suoh.Model;
+using IMessageExporterDesktopSuohEdition.Model;
 
 var assertions = 0;
 void Check(bool result, string message)
@@ -6,6 +6,9 @@ void Check(bool result, string message)
     assertions++;
     if (!result) throw new Exception(message);
 }
+
+Check(typeof(ExportPlan).Namespace == "IMessageExporterDesktopSuohEdition.Model", "Model namespace rename incomplete.");
+Check(typeof(ExportPlan).Assembly.GetName().Name == "IMessageExporterDesktopSuohEdition.Model", "Model assembly rename incomplete.");
 
 foreach (var scale in new[] { 1d, 1.25, 1.5, 1.75, 2, 2.5, 3 })
 foreach (var resolution in new[] { (1366, 768), (1920, 1080), (2560, 1440), (3840, 2160), (800, 600) })

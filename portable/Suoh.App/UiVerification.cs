@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -6,9 +7,9 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Suoh.Model;
+using IMessageExporterDesktopSuohEdition.Model;
 
-namespace Suoh.App;
+namespace IMessageExporterDesktopSuohEdition;
 
 /// <summary>Real WPF/native-window checks on Windows CI. Does not touch personal backups or saved preferences.</summary>
 internal static class UiVerification
@@ -18,6 +19,19 @@ internal static class UiVerification
         Directory.CreateDirectory(output);
         var observations = new List<object>();
         await Settle(view);
+        const string product = "iMessage Exporter Desktop Suoh Edition";
+        const string codeRoot = "IMessageExporterDesktopSuohEdition";
+        var assembly = typeof(App).Assembly;
+        Require(view.Title == product, "Window title does not match the edition name.");
+        Require(Path.GetFileName(Environment.ProcessPath) == product + ".exe", "Published executable has the wrong name.");
+        Require(assembly.GetName().Name == product, "Desktop assembly has the wrong name.");
+        Require(assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product == product, "Product metadata has the wrong name.");
+        Require(assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title == product, "Title metadata has the wrong name.");
+        Require(typeof(App).Namespace == codeRoot && typeof(MainWindow).Namespace == codeRoot, "Desktop namespace rename is incomplete.");
+        Require(typeof(ExportPlan).Namespace == codeRoot + ".Model", "Model namespace rename is incomplete.");
+        observations.Add(new { check = "edition-identity", title = view.Title, executable = Environment.ProcessPath,
+            desktopNamespace = typeof(App).Namespace, modelNamespace = typeof(ExportPlan).Namespace,
+            version = App.DisplayVersion, engine = EngineProcess.Binary, preferences = PortableOptions.FilePath });
         var placement = view.Placement;
         Require(placement.PerMonitorV2, "The window must actually be PerMonitorV2, not merely declare it in source.");
         var expected = ScreenLayout.OpeningBounds(placement.Available, placement.Dpi / 96);

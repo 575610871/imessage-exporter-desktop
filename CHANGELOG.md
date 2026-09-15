@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 — Suoh Edition product identity
+
+- Name the application, Windows executable, file properties and portable root folder `iMessage Exporter Desktop Suoh Edition` (with `.exe` for the executable).
+- Rename the desktop namespace to `IMessageExporterDesktopSuohEdition`, and the model/test namespace roots to `.Model` / `.Tests`; synchronize XAML classes and all references.
+- Centralize dialog names and displayed version information; preserve the Suoh palette and responsive controls.
+- Use `imessage-exporter-desktop-suoh-edition` for release archive prefixes.
+- Add actual executable/assembly/namespace identity checks, then extract and launch the final package from a path containing spaces, with a different working directory; repeat fixture exports with its bundled engine.
+- Original engine source, password bridge, export behavior and DPI/centering logic are unchanged.
+
 ## 0.2.1 — Executable naming
 
 - Rename the portable GUI executable to `iMessage Exporter Desktop.exe` through its build output name.

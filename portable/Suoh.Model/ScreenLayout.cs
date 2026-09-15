@@ -1,4 +1,4 @@
-namespace Suoh.Model;
+namespace IMessageExporterDesktopSuohEdition.Model;
 
 /// <summary>All coordinates in this file are physical screen pixels, never WPF DIPs.</summary>
 public readonly record struct ScreenBox(int X, int Y, int Width, int Height)

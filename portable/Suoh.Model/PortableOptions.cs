@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Suoh.Model;
+namespace IMessageExporterDesktopSuohEdition.Model;
 
 /// <summary>Only these opt-in values can be persisted. No credentials, contact filters or geometry.</summary>
 public sealed record PortableOptions(string Source = "", string OutputFolder = "", int Media = 0, bool TextOnly = false)

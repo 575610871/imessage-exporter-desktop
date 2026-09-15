@@ -1,4 +1,4 @@
-<Application x:Class="Suoh.App.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Application x:Class="IMessageExporterDesktopSuohEdition.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Startup="Boot">
   <Application.Resources>
     <SolidColorBrush x:Key="Suoh" Color="#992C49" />
