@@ -15,7 +15,7 @@ From a repository checkout:
 dotnet run --project portable/Suoh.Tests -c Release
 powershell -NoProfile -STA -File portable/scripts/Icon.ps1
 dotnet publish portable/Suoh.App -c Release -r win-x64 --self-contained true -o build/app -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
-git clone https://github.com/ReagentX/imessage-exporter.git engine-source
+git clone --no-checkout https://github.com/ReagentX/imessage-exporter.git engine-source
 git -C engine-source config core.autocrlf false
 git -C engine-source checkout --detach 0d444ab3220f5940d4632c05da4628009c785a02
 git -C engine-source apply "$PWD/portable/patches/suoh-password.patch"
@@ -34,6 +34,6 @@ For GUI checks run the published executable with `--ui-test <absolute-output-fol
 
 CI workflow `.github/workflows/suoh-portable.yml` builds, tests and packages this independent application. It verifies the upstream commit/tree before patching, reads engine identity from the JSON, and runs both workspace packages' tests including the new null-payload regressions. Publishing requires every validation step to pass and never overwrites an existing version.
 
-Windows upstream test notes: checkout with `core.autocrlf=false` to preserve Askama template line endings; the upstream time snapshots expect Pacific time. CI sets that timezone only on its disposable runner. An upstream assertion under `app::runtime::directory_tests::can_get_path_copied` hardcodes `attachments/d.jpg` where Windows produces `attachments\\d.jpg`. The `--skip` prefix matches two tests, so two tests are filtered out on Windows; all remaining tests must pass. No production exporter behavior is changed for these test-environment adjustments.
+Windows upstream test notes: checkout with `core.autocrlf=false` to preserve Askama template line endings; the upstream time snapshots expect Pacific time. CI sets that timezone only on its disposable runner. Run the Rust tests through Git Bash, which supplies its normal user home: native PowerShell does not export `HOME`, but the upstream macOS tilde-expansion test requires it. No user-home override or additional test exclusion is needed. An upstream assertion under `app::runtime::directory_tests::can_get_path_copied` hardcodes `attachments/d.jpg` where Windows produces `attachments\\d.jpg`. The `--skip` prefix matches two tests, so two tests are filtered out on Windows; all remaining tests must pass. No production exporter behavior is changed for these test-environment adjustments.
 
 `scripts/verify_engine.py` verifies the actual `--version`, the CLI flags/values used by the unchanged GUI, and PE imports for missing C/C++ runtimes. It runs basic HTML/TXT exports, exports with the date/name/caller-ID/lazy-loading/message-time options, and diagnostics using the upstream public SQLite fixture (macOS database path mode, not a real iPhone backup). It runs again against the engine from the extracted final ZIP. This does not substitute for testing a user's encrypted iOS backup or every optional media converter.

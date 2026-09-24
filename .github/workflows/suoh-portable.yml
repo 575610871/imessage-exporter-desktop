@@ -107,8 +107,10 @@ jobs:
         run: |
           # Upstream timestamp snapshots assume Pacific time. This affects this disposable runner only.
           Set-TimeZone -Id 'Pacific Standard Time'
+          # Git Bash supplies the normal user home expected by upstream's Unix-path tests.
+          # Native PowerShell does not export HOME; do not override the user's home or skip that test.
           # This upstream path-test prefix matches two tests; its POSIX separator assertion differs on Windows.
-          cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --workspace -- --skip app::runtime::directory_tests::can_get_path_copied
+          & "$env:ProgramFiles/Git/bin/bash.exe" --noprofile --norc -c 'cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --workspace -- --skip app::runtime::directory_tests::can_get_path_copied'
           if ($LASTEXITCODE -ne 0) { throw 'Upstream tests failed' }
           cargo build --locked --target x86_64-pc-windows-msvc --release --manifest-path engine-source/Cargo.toml --package imessage-exporter
           if ($LASTEXITCODE -ne 0) { throw 'Upstream build failed' }
