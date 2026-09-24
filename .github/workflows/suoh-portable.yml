@@ -14,10 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SUOH_VERSION: 0.2.2
+  SUOH_VERSION: 0.2.3
   SUOH_PRODUCT_NAME: iMessage Exporter Desktop Suoh Edition
   SUOH_PACKAGE_NAME: imessage-exporter-desktop-suoh-edition
-  ENGINE_COMMIT: 4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: '-C target-feature=+crt-static'
   PUBLISH_RELEASE: 'true'
@@ -31,6 +30,13 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@v4
+      - name: Read pinned engine identity
+        run: |
+          $engine = Get-Content portable/engine-source.json -Raw | ConvertFrom-Json
+          "ENGINE_COMMIT=$($engine.source_commit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "ENGINE_TREE=$($engine.source_tree)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "ENGINE_VERSION=$($engine.engine_version)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "ENGINE_BASE_RELEASE=$($engine.base_release)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -73,8 +79,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Upstream fetch failed' }
           git -C engine-source checkout --detach FETCH_HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Upstream checkout failed' }
+          $commit = git -C engine-source rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $commit -cne $env:ENGINE_COMMIT) { throw 'Upstream commit mismatch' }
+          $tree = git -C engine-source rev-parse 'HEAD^{tree}'
+          if ($LASTEXITCODE -ne 0 -or $tree -cne $env:ENGINE_TREE) { throw 'Source does not match the verified uploaded snapshot' }
           git -C engine-source apply "$env:GITHUB_WORKSPACE/portable/patches/suoh-password.patch"
           if ($LASTEXITCODE -ne 0) { throw 'GUI password bridge patch failed' }
+          python portable/scripts/prepare_engine.py engine-source
+          if ($LASTEXITCODE -ne 0) { throw 'Engine version preparation failed' }
           git -C engine-source diff --check
           if ($LASTEXITCODE -ne 0) { throw 'Upstream patch validation failed' }
       - name: Rust toolchain
@@ -96,7 +108,7 @@ jobs:
           # Upstream timestamp snapshots assume Pacific time. This affects this disposable runner only.
           Set-TimeZone -Id 'Pacific Standard Time'
           # This upstream path-test prefix matches two tests; its POSIX separator assertion differs on Windows.
-          cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --package imessage-exporter -- --skip app::runtime::directory_tests::can_get_path_copied
+          cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --workspace -- --skip app::runtime::directory_tests::can_get_path_copied
           if ($LASTEXITCODE -ne 0) { throw 'Upstream tests failed' }
           cargo build --locked --target x86_64-pc-windows-msvc --release --manifest-path engine-source/Cargo.toml --package imessage-exporter
           if ($LASTEXITCODE -ne 0) { throw 'Upstream build failed' }
@@ -110,6 +122,7 @@ jobs:
           New-Item -ItemType Directory -Force "$portable/engine", "$portable/licenses", 'build/dist', 'build/source' | Out-Null
           Copy-Item build/app/* $portable -Recurse
           Copy-Item engine-source/target/x86_64-pc-windows-msvc/release/imessage-exporter.exe "$portable/engine/"
+          Copy-Item portable/engine-source.json "$portable/engine/engine-source.json"
           Copy-Item portable/README.md "$portable/README.md"
           Copy-Item portable/THIRD-PARTY.md "$portable/licenses/THIRD-PARTY.md"
           Copy-Item engine-source/LICENSE "$portable/licenses/UPSTREAM-GPL-3.0.txt"
@@ -118,7 +131,7 @@ jobs:
           foreach ($license in @('LICENSE.txt', 'ThirdPartyNotices.txt')) {
             if (Test-Path "$dotnetDir/$license") { Copy-Item "$dotnetDir/$license" "$portable/licenses/DOTNET-$license" }
           }
-          @("$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION", "Namespace: IMessageExporterDesktopSuohEdition", "Desktop: $env:GITHUB_SHA", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
+          @("$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION", "Namespace: IMessageExporterDesktopSuohEdition", "Desktop: $env:GITHUB_SHA", "Engine version: $env:ENGINE_VERSION", "Upstream base release: $env:ENGINE_BASE_RELEASE; includes later develop fixes from the user-supplied snapshot", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Source tree: $env:ENGINE_TREE", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch", "Version preparation: portable/scripts/prepare_engine.py") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
           Compress-Archive -Path $portable -DestinationPath "build/dist/$env:SUOH_PACKAGE_NAME-$env:SUOH_VERSION-win-x64-portable.zip"
           git archive --format=zip --output build/source-desktop.zip HEAD portable .github/workflows/suoh-portable.yml
           if ($LASTEXITCODE -ne 0) { throw 'Desktop source archive failed' }
@@ -141,6 +154,8 @@ jobs:
           $exe = Join-Path $folder "$($env:SUOH_PRODUCT_NAME).exe"
           $engine = [System.IO.Path]::Combine($folder, 'engine', 'imessage-exporter.exe')
           if (-not (Test-Path -LiteralPath $exe) -or -not (Test-Path -LiteralPath $engine)) { throw 'Portable executable or engine missing' }
+          $engineIdentity = Get-Content -LiteralPath (Join-Path $folder 'engine/engine-source.json') -Raw | ConvertFrom-Json
+          if ($engineIdentity.source_commit -cne $env:ENGINE_COMMIT -or $engineIdentity.engine_version -cne $env:ENGINE_VERSION) { throw 'Packaged engine identity mismatch' }
           $executables = @(Get-ChildItem -LiteralPath $folder -File -Filter '*.exe')
           if ($executables.Count -ne 1 -or $executables[0].Name -cne "$($env:SUOH_PRODUCT_NAME).exe") { throw 'Unexpected old executable in portable root' }
           $metadata = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)

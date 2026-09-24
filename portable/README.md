@@ -1,13 +1,16 @@
-# iMessage Exporter Desktop Suoh Edition 0.2.2
+# iMessage Exporter Desktop Suoh Edition 0.2.3
 
 基于 **ReagentX/imessage-exporter 原始 Rust 导出引擎**，从零编写的独立 Windows 图形应用。
 此目录不引用、不编译旧版 `src/`、`tests/` 或旧版封装项目；使用新的 C# / WPF / .NET 10 项目。
+
+0.2.3 保留 0.2.2 的界面、名称、苏芳配色、启动居中与 DPI 适配，只更新导出引擎及构建验证。
+引擎基于上游 **4.3.0 发布后的 develop 源码快照 `0d444ab`**（与本次提供的源码包完全一致），包含空载荷与链接预览修复、依赖更新。它不是未经修改的官方 4.3.0 EXE。
 
 ![界面布局参考：0.2.0 的真实 Windows 截图；0.2.2 已更新软件名称。示例路径，无用户数据。](docs/preview.png)
 
 ## 使用
 
-1. 将 `imessage-exporter-desktop-suoh-edition-0.2.2-win-x64-portable.zip` 完整解压到新的可写位置，不要覆盖旧版目录。解压后得到 **iMessage Exporter Desktop Suoh Edition** 文件夹。
+1. 将 `imessage-exporter-desktop-suoh-edition-0.2.3-win-x64-portable.zip` 完整解压到新的可写位置，不要覆盖旧版目录。解压后得到 **iMessage Exporter Desktop Suoh Edition** 文件夹。
 2. 打开该文件夹，双击 **iMessage Exporter Desktop Suoh Edition.exe**。保留旁边的 `engine` 和 `licenses` 文件夹，无需安装 .NET。
 3. 选择 iPhone 本地备份根目录（含 `Manifest.plist` 和 `Manifest.db`）。也可以“查找本机备份”。
 4. 选择导出位置、HTML / TXT 和附件方式，点击“开始导出”。每次自动创建新目录，不覆盖已有导出。
@@ -51,12 +54,13 @@ Windows x64 应用，面向 Windows 11（也可在符合 .NET 10 要求的 Windo
 Windows CI 启动真实 WPF 窗口，验证实际 DPI 感知模式、原生窗口位置、离屏恢复及五种逻辑尺寸的布局，并生成截图。
 0.2.2 另检查真实 EXE 名称、产品元数据、命名空间和窗口标题；将最终 ZIP 解压后，从含空格的新文件夹再次启动并验证引擎定位与示例导出。
 CI 的逻辑尺寸检查不等同于在真实多显示器上切换 Windows 缩放，也不能替代使用真实 iPhone 备份的完整验收。
-引擎额外进行运行库依赖检查和上游测试库的 HTML/TXT 导出检查；原项目测试中的 Windows 环境差异及路径测试筛选（匹配两个测试），详见源码包的 BUILD.md。
+引擎额外验证版本和界面使用的命令行参数、基本/附加选项 HTML/TXT 导出、诊断及运行库依赖。0.2.3 的上游测试涵盖数据库和导出器两个包，包括此次空载荷修复的回归测试；Windows 环境差异及路径测试筛选（匹配两个测试），详见源码包的 BUILD.md。
 
 ## 来源
 
 原项目：https://github.com/ReagentX/imessage-exporter
 
-固定引擎提交：`4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4`。
-仅应用 `patches/suoh-password.patch`，让图形界面通过环境变量传入密码并避免隐藏的终端提示。
+正式版基线：`4.3.0`，提交 `4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4`；旧版 0.2.2 已使用这个基线。
+本版固定源码提交：`0d444ab3220f5940d4632c05da4628009c785a02`；完整来源记录随程序置于 `engine/engine-source.json`。
+应用 `patches/suoh-password.patch`，让图形界面通过环境变量传入密码并避免隐藏的终端提示。另由 `scripts/prepare_engine.py` 设置真实构建版本 `4.3.0+suoh.0d444ab`，不改动锁定的第三方依赖。
 授权 GPL-3.0-or-later；对应源码和构建说明随同版本发布。此项目不是 Apple 或原项目作者的官方桌面应用。

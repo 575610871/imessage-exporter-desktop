@@ -1,0 +1,11 @@
+{
+  "repository": "ReagentX/imessage-exporter",
+  "base_release": "4.3.0",
+  "base_commit": "4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4",
+  "source_commit": "0d444ab3220f5940d4632c05da4628009c785a02",
+  "source_tree": "e8f4834d72a47ad2600a33d97cdea0902bef4b8e",
+  "source_kind": "user-supplied develop snapshot, after 4.3.0",
+  "engine_version": "4.3.0+suoh.0d444ab",
+  "uploaded_source_sha256": "f313d9ad6b7c1c3d5d05076dc65be3fcae7b3630aa3e65a905e4d9ad1ddc05eb",
+  "official_windows_gnu_sha256": "31e482940e4d97b650773b7553e81b2b0f80504c10d8c02e1adc59f6423680cb"
+}

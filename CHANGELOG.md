@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.3 — Upstream 4.3.0 follow-up source update
+
+- Keep the 0.2.2 interface, product names, Suoh palette, centering, DPI handling and export settings unchanged.
+- Advance the engine from the upstream 4.3.0 tag (`4d90fc8`) to the user-provided develop snapshot `0d444ab` (2026-09-18), six commits later. This includes null NSKeyedArchiver payload handling, URL text fallback fixes and pinned dependency updates.
+- Verify the uploaded source's full Git tree and the uploaded Windows EXE's SHA256 against upstream. The EXE is the official 4.3.0 asset; the source snapshot contains later fixes. The bundled engine is rebuilt from that snapshot with the existing password bridge.
+- Record provenance in `engine-source.json` and `BUILD-INFO.txt`; stamp the engine as `4.3.0+suoh.0d444ab` instead of leaving upstream's `0.0.0` development placeholders. Preserve third-party dependency versions/checksums and use Cargo's locked build.
+- Test both upstream workspace packages, including the new null-payload regressions; verify engine version, GUI CLI options, basic and option-enabled HTML/TXT exports, diagnostics, native runtime dependencies and the extracted portable package.
+
 ## 0.2.2 — Suoh Edition product identity
 
 - Name the application, Windows executable, file properties and portable root folder `iMessage Exporter Desktop Suoh Edition` (with `.exe` for the executable).
