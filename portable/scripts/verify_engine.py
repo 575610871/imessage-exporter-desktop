@@ -19,7 +19,7 @@ def invoke(arguments, label):
     return result
 
 version = invoke(['--version'], 'version').stdout.strip()
-assert version == 'imessage-exporter ' + identity['engine_version'], f'Unexpected engine version: {version}'
+assert version == 'iMessage Exporter ' + identity['engine_version'], f'Unexpected engine version: {version}'
 help_text = invoke(['--help'], 'help').stdout
 required = {
     'db-path', 'platform', 'format', 'export-path', 'copy-method', 'no-progress',
