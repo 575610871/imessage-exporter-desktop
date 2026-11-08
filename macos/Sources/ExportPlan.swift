@@ -71,14 +71,27 @@ struct ExportPlan {
         if !from.isEmpty && !before.isEmpty && before <= from {
             throw PlanError("结束日期必须晚于开始日期；结束当天不包含在导出中。")
         }
-        let original = source.standardizedFileURL.resolvingSymlinksInPath().path
-        let output = destination.standardizedFileURL.resolvingSymlinksInPath().path
+        let original = Self.physicalPath(source)
+        let output = Self.physicalPath(destination)
         // Case folding is deliberately conservative for case-insensitive APFS volumes.
         let a = original.lowercased(), b = output.lowercased()
         guard b != a && !b.hasPrefix(a.hasSuffix("/") ? a : a + "/") else {
             throw PlanError("导出位置不能在原备份内部，请选择其他文件夹。")
         }
         guard !fm.fileExists(atPath: output) else { throw PlanError("本次导出目录已存在，请重新开始以生成新目录。") }
+    }
+
+    private static func physicalPath(_ url: URL) -> String {
+        // Foundation can leave the whole path unresolved when the final child does not exist.
+        // Resolve each existing ancestor first, then append the new export directory.
+        var current = URL(fileURLWithPath: "/", isDirectory: true)
+        for component in url.standardizedFileURL.pathComponents.dropFirst() {
+            current.appendPathComponent(component)
+            if FileManager.default.fileExists(atPath: current.path) {
+                current = current.resolvingSymlinksInPath()
+            }
+        }
+        return current.standardizedFileURL.path
     }
 
     static func isDate(_ value: String) -> Bool {

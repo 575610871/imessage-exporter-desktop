@@ -40,6 +40,8 @@ enum ModelVerification {
         try fm.createSymbolicLink(at: link, withDestinationURL: source)
         plan.destination = link.appendingPathComponent("output")
         try rejects(plan, "Symlink bypassed backup protection")
+        let aliasSource = ExportPlan(source: link, destination: source.appendingPathComponent("output"))
+        try rejects(aliasSource, "Source alias bypassed backup protection")
         plan.destination = source
         try rejects(plan, "Backup overwrite allowed")
         try require(ExportPlan.newDestination(in: root) != ExportPlan.newDestination(in: root), "Destination collisions")
