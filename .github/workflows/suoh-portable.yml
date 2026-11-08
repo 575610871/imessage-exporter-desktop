@@ -207,7 +207,8 @@ jobs:
           rustup toolchain install stable --profile minimal
           rustup default stable
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: mac-rust
         with:
           path: |
             ~/.cargo/registry
@@ -219,6 +220,15 @@ jobs:
         run: cargo test --locked --manifest-path engine-source/Cargo.toml --workspace
       - name: Build universal native macOS application
         run: bash macos/build.sh engine-source
+      - name: Cache completed macOS Rust builds
+        if: steps.mac-rust.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            engine-source/target
+          key: ${{ steps.mac-rust.outputs.cache-primary-key }}
       - name: Verify the extracted universal app
         run: |
           mkdir -p 'build/mac extraction'
@@ -227,8 +237,8 @@ jobs:
           binary="$app/Contents/MacOS/$SUOH_PRODUCT_NAME"
           engine="$app/Contents/Resources/engine/imessage-exporter"
           codesign --verify --strict --verbose=2 "$app"
-          lipo -verify_arch arm64 x86_64 "$binary"
-          lipo -verify_arch arm64 x86_64 "$engine"
+          lipo "$binary" -verify_arch arm64 x86_64
+          lipo "$engine" -verify_arch arm64 x86_64
           "$binary" --model-test
           "$binary" --ui-test "$PWD/build/mac UI checks"
           python3 portable/scripts/verify_engine.py "$engine" engine-source/imessage-database/test_data/db/test.db 'build/mac engine checks'

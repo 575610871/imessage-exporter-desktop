@@ -67,6 +67,7 @@ enum ModelVerification {
             try require(!fm.fileExists(atPath: tmp), "Decrypted temporary directory survived completion")
         } else { throw PlanError("Job-specific temporary directory was not passed to the child") }
         try "#!/bin/sh\nsleep 30 &\nwait\n".write(to: echo, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: echo.path)
         let cancel = EngineTask(executable: echo), cancelledDone = DispatchSemaphore(value: 0)
         var wasCancelled = false
         cancel.run(plan, diagnostics: false, password: "") { _, value in wasCancelled = value; cancelledDone.signal() }
