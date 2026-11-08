@@ -2,7 +2,7 @@
 set -euo pipefail
 source_dir="${1:?Pass the prepared engine-source directory}"
 product='iMessage Exporter Desktop Suoh Edition'
-version='0.3.0'
+version='0.3.1'
 package='imessage-exporter-desktop-suoh-edition'
 root="$PWD/build/mac-package/$product"
 app="$root/$product.app"
@@ -28,7 +28,7 @@ cp macos/README.md "$root/README.md"
 python3 - "$root/BUILD-INFO.txt" <<'PY'
 import json, os, pathlib, sys
 source = json.loads(pathlib.Path('portable/engine-source.json').read_text())
-pathlib.Path(sys.argv[1]).write_text('iMessage Exporter Desktop Suoh Edition 0.3.0\n'
+pathlib.Path(sys.argv[1]).write_text('iMessage Exporter Desktop Suoh Edition 0.3.1\n'
     + 'Desktop: ' + os.environ.get('GITHUB_SHA', 'local checkout') + '\n'
     + 'Engine: ' + source['engine_version'] + '\n'
     + 'Original source: ' + source['source_commit'] + '\n'

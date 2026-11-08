@@ -2,7 +2,7 @@ import Foundation
 
 enum Product {
     static let name = "iMessage Exporter Desktop Suoh Edition"
-    static let version = "0.3.0"
+    static let version = "0.3.1"
     static var engine: URL {
         Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/engine/imessage-exporter")
     }

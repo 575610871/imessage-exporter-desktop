@@ -2,7 +2,7 @@
 
 ## Pinned engine
 
-`portable/engine-source.json` is the single engine identity record. Version 0.3.0 uses the official **5.0.1** tag at `33c81a90beb151583983fb6ff000fc6f085ec5e8`, tree `38984b747d41ae8eadb10466e8c0d06917886245`.
+`portable/engine-source.json` is the single engine identity record. Version 0.3.1 uses the official **5.0.1** tag at `33c81a90beb151583983fb6ff000fc6f085ec5e8`, tree `38984b747d41ae8eadb10466e8c0d06917886245`.
 
 Fetch with `python3 portable/scripts/fetch_engine.py engine-source`. The script verifies the exact commit and tree, applies `portable/patches/suoh-password.patch`, and runs `portable/scripts/prepare_engine.py`. The latter stamps only the two workspace manifests and matching Cargo.lock records as `5.0.1+suoh.33c81a9`; locked third-party entries remain unchanged. Cargo commands use `--locked`.
 

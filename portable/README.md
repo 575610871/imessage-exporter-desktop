@@ -1,4 +1,4 @@
-# iMessage Exporter Desktop Suoh Edition 0.3.0 · Windows
+# iMessage Exporter Desktop Suoh Edition 0.3.1 · Windows
 
 基于 ReagentX/imessage-exporter **5.0.1 正式版**重新编译的原始 Rust 引擎。Windows 保留 0.2.3 的界面、苏芳配色、启动居中和 DPI 适配。另有保持同一操作布局的原生 Mac 版，见发布页。
 
@@ -6,7 +6,7 @@
 
 ## 使用
 
-1. 将 `imessage-exporter-desktop-suoh-edition-0.3.0-win-x64-portable.zip` 完整解压到新的可写位置，不要覆盖旧版目录。解压后得到 **iMessage Exporter Desktop Suoh Edition** 文件夹。
+1. 将 `imessage-exporter-desktop-suoh-edition-0.3.1-win-x64-portable.zip` 完整解压到新的可写位置，不要覆盖旧版目录。解压后得到 **iMessage Exporter Desktop Suoh Edition** 文件夹。
 2. 打开该文件夹，双击 **iMessage Exporter Desktop Suoh Edition.exe**。保留旁边的 `engine` 和 `licenses` 文件夹，无需安装 .NET。
 3. 选择 iPhone 本地备份根目录（含 `Manifest.plist` 和 `Manifest.db`）。也可以“查找本机备份”。
 4. 选择导出位置、HTML / TXT 和附件方式，点击“开始导出”。每次自动创建新目录，不覆盖已有导出。
@@ -50,7 +50,7 @@ Windows x64 应用，面向 Windows 11（也可在符合 .NET 10 要求的 Windo
 Windows CI 启动真实 WPF 窗口，验证实际 DPI 感知模式、原生窗口位置、离屏恢复及五种逻辑尺寸的布局，并生成截图。
 0.2.2 另检查真实 EXE 名称、产品元数据、命名空间和窗口标题；将最终 ZIP 解压后，从含空格的新文件夹再次启动并验证引擎定位与示例导出。
 CI 的逻辑尺寸检查不等同于在真实多显示器上切换 Windows 缩放，也不能替代使用真实 iPhone 备份的完整验收。
-引擎额外验证版本和界面使用的命令行参数、基本/附加选项 HTML/TXT 导出、诊断及运行库依赖。0.3.0 的上游测试涵盖数据库和导出器两个包，包括 5.0.1 新增的联系人分组等回归测试；Windows 环境差异及路径测试筛选（匹配两个测试），详见源码包的 BUILD.md。
+引擎额外验证版本和界面使用的命令行参数、基本/附加选项 HTML/TXT 导出、诊断及运行库依赖。0.3.1 的上游测试涵盖数据库和导出器两个包，包括 5.0.1 新增的联系人分组等回归测试；Windows 环境差异及路径测试筛选（匹配两个测试），详见源码包的 BUILD.md。
 
 ## 来源
 

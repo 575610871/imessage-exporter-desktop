@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SUOH_VERSION: 0.3.0
+  SUOH_VERSION: 0.3.1
   SUOH_PRODUCT_NAME: iMessage Exporter Desktop Suoh Edition
   SUOH_PACKAGE_NAME: imessage-exporter-desktop-suoh-edition
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -134,7 +134,7 @@ jobs:
           }
           @("$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION", "Namespace: IMessageExporterDesktopSuohEdition", "Desktop: $env:GITHUB_SHA", "Engine version: $env:ENGINE_VERSION", "Upstream release: $env:ENGINE_BASE_RELEASE (official tag, rebuilt with the GUI password bridge)", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Source tree: $env:ENGINE_TREE", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch", "Version preparation: portable/scripts/prepare_engine.py") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
           Compress-Archive -Path $portable -DestinationPath "build/dist/$env:SUOH_PACKAGE_NAME-$env:SUOH_VERSION-win-x64-portable.zip"
-          git archive --format=zip --output build/source-desktop.zip HEAD portable macos .github/workflows/suoh-portable.yml
+          git archive --format=zip --output build/source-desktop.zip HEAD portable macos .github/workflows/suoh-portable.yml .gitattributes
           if ($LASTEXITCODE -ne 0) { throw 'Desktop source archive failed' }
           Expand-Archive build/source-desktop.zip build/source/desktop
           Copy-Item LICENSE build/source/desktop/LICENSE
@@ -285,6 +285,11 @@ jobs:
           for path in sorted(files):
               with zipfile.ZipFile(path) as archive:
                   assert archive.testzip() is None, path.name
+                  if path.name.endswith('-source.zip'):
+                      assert 'desktop/.gitattributes' in archive.namelist()
+                      for name in archive.namelist():
+                          if name.startswith('desktop/macos/') and name.endswith(('.sh', '.swift', '.plist', '.md')):
+                              assert b'\r\n' not in archive.read(name), 'Mac source must retain LF: ' + name
               lines.append(hashlib.sha256(path.read_bytes()).hexdigest() + '  ' + path.name)
           (folder / 'SHA256SUMS.txt').write_text('\n'.join(lines) + '\n', encoding='ascii')
           print('\n'.join(lines))

@@ -1,0 +1,3 @@
+macos/** text eol=lf
+.github/workflows/** text eol=lf
+*.md text eol=lf

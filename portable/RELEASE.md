@@ -1,10 +1,12 @@
-**0.3.0：更新至原作者 5.0.1，并增加原生 Mac 版。** Windows 保留 0.2.3 的界面、苏芳配色、启动居中、原生标题栏和 PerMonitorV2 DPI 布局。
+**0.3.1：修正跨平台源码包的换行格式，包含 0.3.0 的 5.0.1 引擎升级和原生 Mac 版。** Windows 保留 0.2.3 的界面、苏芳配色、启动居中、原生标题栏和 PerMonitorV2 DPI 布局。
+
+0.3.0 的 Windows 和 Mac 主程序已验证通过；0.3.1 补充 Git 换行规则，保证 Windows 打包的 Mac 源码和构建脚本仍为 LF，并在发布前检查。两种主程序同步更新版本号，操作方式与引擎保持一致。
 
 ## 下载与打开
 
-- **Windows x64**：下载 `imessage-exporter-desktop-suoh-edition-0.3.0-win-x64-portable.zip`，完整解压到新位置，双击文件夹内的 **iMessage Exporter Desktop Suoh Edition.exe**。保留旁边的 engine 文件夹，无需安装 .NET。
-- **macOS 13+**：下载 `imessage-exporter-desktop-suoh-edition-0.3.0-macos-universal.zip`，解压后打开同名的 **.app**。同时支持 Apple 芯片与 Intel，无需另装运行时。Mac 版有本地 ad-hoc 签名，尚无 Apple Developer ID 签名或公证；首次打开可能需要在“系统设置 → 隐私与安全性”中选择“仍要打开”。详见包内 README。
-- **对应源码**：`imessage-exporter-desktop-suoh-edition-0.3.0-source.zip`。`SHA256SUMS.txt` 包含三个压缩包的校验值。
+- **Windows x64**：下载 `imessage-exporter-desktop-suoh-edition-0.3.1-win-x64-portable.zip`，完整解压到新位置，双击文件夹内的 **iMessage Exporter Desktop Suoh Edition.exe**。保留旁边的 engine 文件夹，无需安装 .NET。
+- **macOS 13+**：下载 `imessage-exporter-desktop-suoh-edition-0.3.1-macos-universal.zip`，解压后打开同名的 **.app**。同时支持 Apple 芯片与 Intel，无需另装运行时。Mac 版有本地 ad-hoc 签名，尚无 Apple Developer ID 签名或公证；首次打开可能需要在“系统设置 → 隐私与安全性”中选择“仍要打开”。详见包内 README。
+- **对应源码**：`imessage-exporter-desktop-suoh-edition-0.3.1-source.zip`。`SHA256SUMS.txt` 包含三个压缩包的校验值。
 
 ## 引擎更新
 

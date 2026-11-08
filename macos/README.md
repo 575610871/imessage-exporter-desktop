@@ -1,10 +1,10 @@
-# iMessage Exporter Desktop Suoh Edition 0.3.0 · Mac
+# iMessage Exporter Desktop Suoh Edition 0.3.1 · Mac
 
 macOS 13 或更新版本，支持 Apple 芯片与 Intel。原生 SwiftUI / AppKit 界面，保留苏芳配色和原 Windows 版的操作布局。应用与导出引擎都包含两种架构，无需安装 .NET、Python、Rust 或其他运行时。
 
 ## 打开
 
-1. 完整解压 `imessage-exporter-desktop-suoh-edition-0.3.0-macos-universal.zip`。
+1. 完整解压 `imessage-exporter-desktop-suoh-edition-0.3.1-macos-universal.zip`。
 2. 双击文件夹中的 **iMessage Exporter Desktop Suoh Edition.app**。也可以将 .app 拖入“应用程序”。
 3. 本版仅有本地 ad-hoc 签名，没有 Apple Developer ID 签名或公证。macOS 可能阻止首次打开；核对来源和 SHA256 后，可在系统设置的“隐私与安全性”中选择“仍要打开”。具体步骤见 [Apple 官方说明](https://support.apple.com/en-us/102445)。无需关闭 Gatekeeper 或运行移除隔离属性的命令。
 

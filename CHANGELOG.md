@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+- Preserve LF line endings for macOS source and shell scripts when packaging corresponding source on Windows.
+- Include the root Git attributes in the source archive and validate Mac source line endings before release.
+- Keep the verified 5.0.1 engine and Windows / Mac interface behavior from 0.3.0.
+
 ## 0.3.0
 
 - Rebuild the export engine from the official 5.0.1 tag (33c81a9), retaining the GUI password bridge and locked dependencies.
