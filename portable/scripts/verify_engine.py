@@ -30,31 +30,37 @@ available = set(re.findall(r'--([a-z][a-z-]+)\b', help_text))
 assert required <= available, f'GUI options missing from engine: {sorted(required - available)}'
 assert all(value in help_text for value in ('clone', 'basic', 'full', 'disabled', 'iOS', 'macOS')), 'CLI value contract changed'
 
-pe = engine.read_bytes()
-pe_offset = struct.unpack_from('<I', pe, 0x3C)[0]
-assert pe[pe_offset:pe_offset + 4] == b'PE\x00\x00', 'Not a PE executable'
-machine, sections = struct.unpack_from('<HH', pe, pe_offset + 4)
-assert machine == 0x8664, 'Engine must be Windows x64'
-optional_size = struct.unpack_from('<H', pe, pe_offset + 20)[0]
-optional = pe_offset + 24
-assert struct.unpack_from('<H', pe, optional)[0] == 0x20B, 'Expected PE32+'
-table = optional + optional_size
-
-def file_offset(rva):
-    for i in range(sections):
-        size, address, raw_size, raw_address = struct.unpack_from('<IIII', pe, table + i * 40 + 8)
-        if address <= rva < address + max(size, raw_size):
-            return raw_address + rva - address
-    raise ValueError(f'Invalid RVA: {rva:x}')
-
-imports_rva = struct.unpack_from('<I', pe, optional + 112 + 8)[0]
-cursor = file_offset(imports_rva)
 dlls = []
-while any(pe[cursor:cursor + 20]):
-    name = file_offset(struct.unpack_from('<I', pe, cursor + 12)[0])
-    dlls.append(pe[name:pe.index(0, name)].decode('ascii'))
-    cursor += 20
-assert not any(name.lower().startswith(('vcruntime', 'msvcp', 'libgcc', 'libstdc++', 'libwinpthread')) for name in dlls), f'Unbundled runtime dependency: {dlls}'
+if sys.platform == 'darwin':
+    linked = subprocess.run(['otool', '-L', str(engine)], check=True, capture_output=True, text=True).stdout
+    dlls = [line.strip().split(' (')[0] for line in linked.splitlines()[1:] if line.strip() and 'architecture ' not in line]
+    assert all(name.startswith(('/System/', '/usr/lib/')) or name.startswith(str(engine)) for name in dlls), f'Unbundled macOS dependency: {dlls}'
+else:
+    pe = engine.read_bytes()
+    pe_offset = struct.unpack_from('<I', pe, 0x3C)[0]
+    assert pe[pe_offset:pe_offset + 4] == b'PE\x00\x00', 'Not a PE executable'
+    machine, sections = struct.unpack_from('<HH', pe, pe_offset + 4)
+    assert machine == 0x8664, 'Engine must be Windows x64'
+    optional_size = struct.unpack_from('<H', pe, pe_offset + 20)[0]
+    optional = pe_offset + 24
+    assert struct.unpack_from('<H', pe, optional)[0] == 0x20B, 'Expected PE32+'
+    table = optional + optional_size
+
+    def file_offset(rva):
+        for i in range(sections):
+            size, address, raw_size, raw_address = struct.unpack_from('<IIII', pe, table + i * 40 + 8)
+            if address <= rva < address + max(size, raw_size):
+                return raw_address + rva - address
+        raise ValueError(f'Invalid RVA: {rva:x}')
+
+    imports_rva = struct.unpack_from('<I', pe, optional + 112 + 8)[0]
+    cursor = file_offset(imports_rva)
+    dlls = []
+    while any(pe[cursor:cursor + 20]):
+        name = file_offset(struct.unpack_from('<I', pe, cursor + 12)[0])
+        dlls.append(pe[name:pe.index(0, name)].decode('ascii'))
+        cursor += 20
+    assert not any(name.lower().startswith(('vcruntime', 'msvcp', 'libgcc', 'libstdc++', 'libwinpthread')) for name in dlls), f'Unbundled runtime dependency: {dlls}'
 
 with sqlite3.connect(f'{database.as_uri()}?mode=ro', uri=True) as connection:
     messages = connection.execute('SELECT COUNT(*) FROM message').fetchone()[0]

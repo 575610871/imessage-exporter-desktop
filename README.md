@@ -1,74 +1,21 @@
-# iMessage Exporter Desktop
+# iMessage Exporter Desktop Suoh Edition
 
-## 全新独立项目：Suoh Edition 便携版
+中文图形界面，苏芳主色，本地导出 iPhone 备份中的 iMessage。基于 ReagentX/imessage-exporter **5.0.1**，提供 Windows x64 便携版与 macOS 13+ 通用应用（Apple 芯片 + Intel）。
 
-新的 [iMessage Exporter Desktop Suoh Edition](portable/README.md) 位于 `portable/`，直接基于 ReagentX 原引擎源码，**不引用或编译下面旧版封装的代码**。新界面、任务管理、窗口定位、测试与打包均为独立实现。
+[下载 0.3.0](https://github.com/575610871/imessage-exporter-desktop/releases/tag/v0.3.0)
 
-苏芳色 `#992C49` · 启动按屏幕工作区居中 · PerMonitorV2 · 自包含免安装文件夹。
+- Windows：完整解压 `win-x64-portable.zip`，双击 **iMessage Exporter Desktop Suoh Edition.exe**，保留 engine 文件夹。无需安装 .NET。
+- Mac：完整解压 `macos-universal.zip`，打开同名 **.app**，也可以拖到“应用程序”。本地 ad-hoc 签名，未进行 Apple Developer ID 签名或公证；首次打开说明见包内 README。
+- 对应源码和 SHA256 校验文件与两种程序一起发布。
 
-下载和使用请查看 [Releases](https://github.com/575610871/imessage-exporter-desktop/releases)；构建方法见 [独立项目说明](portable/BUILD.md)。
+Windows 沿用原有 WPF 界面、苏芳配色、启动居中和 PerMonitorV2。Mac 使用 SwiftUI / AppKit，保留相同的设置顺序、日志页和示例侧栏，使用原生窗口控件与 Retina 布局。
 
----
+软件读取 Finder / Apple Devices / iTunes 的本地 iPhone 备份，不直接连接手机或下载 iCloud。每次新建独立输出目录，支持 HTML/TXT、附件处理、加密备份、日期和会话筛选、日志、取消以及打开结果。
 
-以下内容为保留的 **0.1.x 旧版** 文档，新版便携应用不使用其安装程序。
+原作者 5.0.1 会依据联系人合并部分会话，文件名和附件目录可能与 4.3.0 不同。比较时请检查会话内容。引擎从正式标签 `33c81a9` 重编译，保留 GUI 密码补丁，标识为 `5.0.1+suoh.33c81a9`。
 
-[![Build Windows](https://github.com/575610871/imessage-exporter-desktop/actions/workflows/build-windows.yml/badge.svg)](https://github.com/575610871/imessage-exporter-desktop/actions/workflows/build-windows.yml)
+使用说明：[Windows](portable/README.md) · [Mac](macos/README.md) · [构建与验证](portable/BUILD.md)
 
-面向普通 Windows 用户的 iMessage 导出桌面应用。它为 [ReagentX/imessage-exporter](https://github.com/ReagentX/imessage-exporter) 提供中文优先的可视化界面、便携版和标准安装程序。
+本次使用的项目位于 `portable/`（Windows）、`macos/`（Mac），不编译历史 `src/` 桌面项目。发布前必须通过两个系统的构建、测试、最终 ZIP 解压运行和样例导出验证。真实备份和实际多屏缩放仍需实机验收。
 
-> 这是社区制作的非官方界面，与 Apple Inc. 或原上游作者没有隶属关系。
-
-## 功能
-
-- 自动寻找 Apple Devices 或 iTunes 创建的本地 iPhone 备份
-- 图形化选择备份目录与导出目录
-- 导出 HTML 或 TXT
-- 附件不复制、原样复制、转换图片或完整转换
-- 按日期、联系人、电话号码或邮箱筛选
-- 支持加密 iPhone 备份；密码不保存、不显示在命令行中
-- 显示实时日志，可随时取消
-- 完成后直接打开导出文件夹
-- 提供诊断模式
-- 安装时可选择路径、创建桌面快捷方式并在完成后启动
-- 支持 Windows 高 DPI 与多显示器缩放；窄窗口自动切换为单栏布局
-
-## 使用
-
-1. 用 Windows 的 **Apple Devices** 或 **iTunes** 将 iPhone 完整备份到电脑。
-2. 下载并运行 `iMessage-Exporter-Desktop-Setup-x64.exe`。
-3. 点击“自动查找备份”，或手动选择包含 `Manifest.plist` 的备份根目录。
-4. 选择导出目录和格式，然后点击“开始导出”。
-
-默认的“原样复制附件”不需要安装额外工具。“转换图片”需要 ImageMagick；“完整转换”还需要 FFmpeg。
-
-## 隐私
-
-应用和导出核心均在本机运行，不上传消息、联系人、附件或备份密码。加密备份密码只通过子进程环境传给本地导出核心，用后即丢弃，也不会写入偏好设置。
-
-应用以只读方式使用 iPhone 备份，导出目录不得位于备份目录内部。
-
-## 构建来源
-
-构建工作流从上游 `develop` 分支的固定提交编译 Rust 核心：
-
-`4d90fc8d20a745c0a8acc1e01c0631c4bab89cb4`
-
-固定提交可让安装包可复现，也避免上游变化在未检查时进入成品。
-
-## 开发构建
-
-需要 Windows、.NET 8 SDK、Rust stable 和 Inno Setup 6。
-
-```powershell
-dotnet build src/ImessageExporterDesktop/ImessageExporterDesktop.csproj
-```
-
-完整安装包使用仓库中的 GitHub Actions 工作流构建。
-
-## 显示缩放
-
-应用声明为 Per-Monitor V2 DPI 感知。窗口会根据当前显示器的可用区域调整初始尺寸；拖动到不同缩放比例的显示器后会重新检查可用尺寸。窗口较窄时，导出选项会从双栏自动改为单栏，并保留纵向滚动。
-
-## 许可证
-
-本项目及其修改采用 **GPL-3.0-or-later**。导出核心版权归其原作者及贡献者所有，详情见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+GPL-3.0-or-later。原项目：https://github.com/ReagentX/imessage-exporter

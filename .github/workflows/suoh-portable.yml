@@ -3,7 +3,7 @@ name: iMessage Exporter Desktop Suoh Edition (portable)
 on:
   push:
     branches: [main]
-    paths: ['portable/**', '.github/workflows/suoh-portable.yml']
+    paths: ['portable/**', 'macos/**', '.github/workflows/suoh-portable.yml']
   workflow_dispatch:
 
 permissions:
@@ -11,10 +11,10 @@ permissions:
 
 concurrency:
   group: suoh-portable
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
-  SUOH_VERSION: 0.2.3
+  SUOH_VERSION: 0.3.0
   SUOH_PRODUCT_NAME: iMessage Exporter Desktop Suoh Edition
   SUOH_PACKAGE_NAME: imessage-exporter-desktop-suoh-edition
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -107,10 +107,9 @@ jobs:
         run: |
           # Upstream timestamp snapshots assume Pacific time. This affects this disposable runner only.
           Set-TimeZone -Id 'Pacific Standard Time'
-          # Git Bash supplies the normal user home expected by upstream's Unix-path tests.
-          # Native PowerShell does not export HOME; do not override the user's home or skip that test.
-          # This upstream path-test prefix matches two tests; its POSIX separator assertion differs on Windows.
-          & "$env:ProgramFiles/Git/bin/bash.exe" --noprofile --norc -c 'cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --workspace -- --skip app::runtime::directory_tests::can_get_path_copied'
+          # The two upstream relative_path tests hardcode POSIX separators; native Windows uses backslashes.
+          # All other workspace tests run unchanged. macOS runs the entire suite without exclusions.
+          & "$env:ProgramFiles/Git/bin/bash.exe" --noprofile --norc -c 'cargo test --locked --target x86_64-pc-windows-msvc --manifest-path engine-source/Cargo.toml --workspace -- --skip app::runtime::directory_tests::relative_path_'
           if ($LASTEXITCODE -ne 0) { throw 'Upstream tests failed' }
           cargo build --locked --target x86_64-pc-windows-msvc --release --manifest-path engine-source/Cargo.toml --package imessage-exporter
           if ($LASTEXITCODE -ne 0) { throw 'Upstream build failed' }
@@ -133,9 +132,9 @@ jobs:
           foreach ($license in @('LICENSE.txt', 'ThirdPartyNotices.txt')) {
             if (Test-Path "$dotnetDir/$license") { Copy-Item "$dotnetDir/$license" "$portable/licenses/DOTNET-$license" }
           }
-          @("$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION", "Namespace: IMessageExporterDesktopSuohEdition", "Desktop: $env:GITHUB_SHA", "Engine version: $env:ENGINE_VERSION", "Upstream base release: $env:ENGINE_BASE_RELEASE; includes later develop fixes from the user-supplied snapshot", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Source tree: $env:ENGINE_TREE", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch", "Version preparation: portable/scripts/prepare_engine.py") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
+          @("$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION", "Namespace: IMessageExporterDesktopSuohEdition", "Desktop: $env:GITHUB_SHA", "Engine version: $env:ENGINE_VERSION", "Upstream release: $env:ENGINE_BASE_RELEASE (official tag, rebuilt with the GUI password bridge)", "Original engine: ReagentX/imessage-exporter@$env:ENGINE_COMMIT", "Source tree: $env:ENGINE_TREE", "Build: Windows x64, self-contained .NET 10", "Patch: portable/patches/suoh-password.patch", "Version preparation: portable/scripts/prepare_engine.py") | Set-Content "$portable/BUILD-INFO.txt" -Encoding utf8
           Compress-Archive -Path $portable -DestinationPath "build/dist/$env:SUOH_PACKAGE_NAME-$env:SUOH_VERSION-win-x64-portable.zip"
-          git archive --format=zip --output build/source-desktop.zip HEAD portable .github/workflows/suoh-portable.yml
+          git archive --format=zip --output build/source-desktop.zip HEAD portable macos .github/workflows/suoh-portable.yml
           if ($LASTEXITCODE -ne 0) { throw 'Desktop source archive failed' }
           Expand-Archive build/source-desktop.zip build/source/desktop
           Copy-Item LICENSE build/source/desktop/LICENSE
@@ -192,17 +191,101 @@ jobs:
           path: build/dist/*
           if-no-files-found: error
           retention-days: 30
-      - name: Publish new portable release
-        if: env.PUBLISH_RELEASE == 'true'
+
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+      TZ: America/Los_Angeles
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch and prepare the same pinned engine
+        run: python3 portable/scripts/fetch_engine.py engine-source
+      - name: Rust targets
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            engine-source/target
+          key: suoh-macos-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine-source/Cargo.lock') }}
+          restore-keys: suoh-macos-v1-${{ runner.os }}-${{ runner.arch }}-
+      - name: Upstream workspace tests on macOS
+        run: cargo test --locked --manifest-path engine-source/Cargo.toml --workspace
+      - name: Build universal native macOS application
+        run: bash macos/build.sh engine-source
+      - name: Verify the extracted universal app
+        run: |
+          mkdir -p 'build/mac extraction'
+          ditto -x -k "build/mac-dist/$SUOH_PACKAGE_NAME-$SUOH_VERSION-macos-universal.zip" 'build/mac extraction'
+          app="$PWD/build/mac extraction/$SUOH_PRODUCT_NAME/$SUOH_PRODUCT_NAME.app"
+          binary="$app/Contents/MacOS/$SUOH_PRODUCT_NAME"
+          engine="$app/Contents/Resources/engine/imessage-exporter"
+          codesign --verify --strict --verbose=2 "$app"
+          lipo -verify_arch arm64 x86_64 "$binary"
+          lipo -verify_arch arm64 x86_64 "$engine"
+          "$binary" --model-test
+          "$binary" --ui-test "$PWD/build/mac UI checks"
+          python3 portable/scripts/verify_engine.py "$engine" engine-source/imessage-database/test_data/db/test.db 'build/mac engine checks'
+      - name: Upload macOS validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imessage-exporter-desktop-suoh-edition-macOS-evidence
+          path: |
+            build/mac UI checks/
+            build/mac engine checks/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload macOS portable deliverable
+        uses: actions/upload-artifact@v4
+        with:
+          name: imessage-exporter-desktop-suoh-edition-${{ env.SUOH_VERSION }}-macos
+          path: build/mac-dist/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    if: ${{ success() }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: imessage-exporter-desktop-suoh-edition-${{ env.SUOH_VERSION }}-*
+          path: build/dist
+          merge-multiple: true
+      - name: Check all three archives and write combined hashes
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, pathlib, zipfile
+          folder = pathlib.Path('build/dist')
+          version = os.environ['SUOH_VERSION']
+          base = os.environ['SUOH_PACKAGE_NAME'] + '-' + version
+          expected = {base + '-win-x64-portable.zip', base + '-macos-universal.zip', base + '-source.zip'}
+          files = list(folder.glob('*.zip'))
+          assert {p.name for p in files} == expected, 'Missing platform or source archive'
+          lines = []
+          for path in sorted(files):
+              with zipfile.ZipFile(path) as archive:
+                  assert archive.testzip() is None, path.name
+              lines.append(hashlib.sha256(path.read_bytes()).hexdigest() + '  ' + path.name)
+          (folder / 'SHA256SUMS.txt').write_text('\n'.join(lines) + '\n', encoding='ascii')
+          print('\n'.join(lines))
+          PY
+      - name: Publish Windows, Mac and corresponding source together
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v$env:SUOH_VERSION"
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host 'Existing release preserved. Bump SUOH_VERSION before publishing another binary.'
+          tag="v$SUOH_VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Existing release preserved; use a new version before publishing different binaries.'
             exit 0
-          }
-          $files = Get-ChildItem build/dist -File | ForEach-Object FullName
-          gh release create $tag @files --target $env:GITHUB_SHA --title "$env:SUOH_PRODUCT_NAME $env:SUOH_VERSION" --notes-file portable/RELEASE.md --repo $env:GITHUB_REPOSITORY
-          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }
+          fi
+          gh release create "$tag" build/dist/* --target "$GITHUB_SHA" --title "$SUOH_PRODUCT_NAME $SUOH_VERSION" --notes-file portable/RELEASE.md --repo "$GITHUB_REPOSITORY"

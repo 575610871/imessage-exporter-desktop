@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Rebuild the export engine from the official 5.0.1 tag (33c81a9), retaining the GUI password bridge and locked dependencies.
+- Preserve the Windows Suoh interface, centering and PerMonitorV2 behavior.
+- Add a native SwiftUI/AppKit macOS 13+ app with universal Apple Silicon/Intel GUI and engine binaries.
+- Match the existing settings/logs workflow and add native macOS backup discovery, process cancellation, opt-in settings and window checks.
+- Verify both extracted packages and publish Windows, Mac, corresponding source and combined SHA256 checksums together.
+- Document upstream conversation grouping and filename changes and macOS ad-hoc signing / first-open limitations.
+
 ## 0.2.3 — Upstream 4.3.0 follow-up source update
 
 - Keep the 0.2.2 interface, product names, Suoh palette, centering, DPI handling and export settings unchanged.

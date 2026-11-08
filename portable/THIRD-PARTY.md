@@ -2,6 +2,7 @@
 
 - **imessage-exporter / imessage-database** by Christopher Sardegna (ReagentX) and contributors: GPL-3.0-or-later. https://github.com/ReagentX/imessage-exporter . Exact upstream source, the small Suoh password bridge patch and the workspace-version preparation script are provided in the matching source archive. Engine provenance is recorded in `engine/engine-source.json` next to the engine binary.
 - **.NET / WPF** by the .NET Foundation, Microsoft and contributors: MIT and accompanying third-party notices. The portable distribution includes a self-contained Windows x64 runtime. See the DOTNET license/notice files in this folder where included by the SDK.
+- **macOS frameworks / Swift runtime**: the Mac application uses system-provided AppKit, SwiftUI and Foundation on macOS 13+. These Apple system components are not redistributed in the ZIP.
 - The upstream engine's Rust dependencies and their pinned versions are documented in the corresponding `Cargo.lock`; source package includes the original manifests and licenses. Cargo retrieves dependency source during a build.
 - ImageMagick and FFmpeg are optional, external user-supplied programs, not included in this distribution.
 

@@ -5,3 +5,5 @@ artifacts/
 *.user
 *.suo
 src/ImessageExporterDesktop/Assets/App.ico
+build/
+engine-source/
