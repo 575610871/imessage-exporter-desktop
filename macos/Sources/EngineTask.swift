@@ -65,7 +65,7 @@ final class EngineTask: @unchecked Sendable {
                 if cancelled { lock.unlock(); throw PlanError("任务已取消。") }
                 do { try child.run(); process = child; lock.unlock() }
                 catch { lock.unlock(); throw error }
-                child.environment = nil
+                // NSTask launch parameters are immutable after run(); release the local copy only.
                 env.removeValue(forKey: "SUOH_BACKUP_PASSWORD")
                 var buffer = Data()
                 while true {
